@@ -412,7 +412,19 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
   <div class="ph">
     <div><div class="ph-title">Budget Dashboard</div><div class="ph-sub">All values update live as you edit</div></div>
     <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn btn-ghost" onclick="exportFullProjectExcel()">💾 Save to Excel</button>
       <button class="btn btn-primary" onclick="exportOffer()">⬇ Print / Export</button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px;border-color:var(--copper);background:var(--copper-bg)">
+    <div class="card-head">Full Project Cost</div>
+    <div class="note" style="margin-top:0;margin-bottom:14px">The complete project — Digital/SCADA system, Electrical Cabinet, and IIoT together.</div>
+    <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:0">
+      <div class="stat"><div class="stat-label">Digital / SCADA</div><div class="stat-value c-blue" id="full-scada-total">$0</div><div class="stat-sub">License + Hardware + Labor</div></div>
+      <div class="stat"><div class="stat-label">Electrical Cabinet</div><div class="stat-value" id="full-cabinet-total">$0</div><div class="stat-sub">All-in cabinet cost</div></div>
+      <div class="stat"><div class="stat-label">IIoT</div><div class="stat-value c-amber" id="full-iiot-total">$0</div><div class="stat-sub">Panels, if needed</div></div>
+      <div class="stat"><div class="stat-label">Full Project Total</div><div class="stat-value c-green" id="full-project-total" style="font-size:30px">$0</div><div class="stat-sub">Sum of all three</div></div>
     </div>
   </div>
 
@@ -1843,6 +1855,24 @@ function calcIiotPanels() {
   sv('iiot-qty', String(qty));
   sv('iiot-totalcost', fmt(qty * IIOT_UNIT_COST));
   sv('iiot-totalprice', fmt(qty * IIOT_UNIT_PRICE));
+  syncFullProjectCost();
+}
+// Reads the three already-computed totals straight from the DOM (each area
+// keeps its own numbers current) rather than recomputing anything itself —
+// this is purely a roll-up, so it can't drift out of sync with any one area.
+function getFullProjectCostParts() {
+  const num = s => parseFloat((s||'').replace(/[^0-9.-]/g,'')) || 0;
+  const scada = num(document.getElementById('d-total')?.textContent);
+  const cabinet = num(document.getElementById('dash-cab-total')?.textContent);
+  const iiot = num(document.getElementById('iiot-totalprice')?.textContent);
+  return { scada, cabinet, iiot, total: scada + cabinet + iiot };
+}
+function syncFullProjectCost() {
+  const p = getFullProjectCostParts();
+  sv('full-scada-total', fmt(p.scada));
+  sv('full-cabinet-total', fmt(p.cabinet));
+  sv('full-iiot-total', fmt(p.iiot));
+  sv('full-project-total', fmt(p.total));
 }
 
 // word → integer (Excel's text-based number system)
@@ -2779,6 +2809,133 @@ document.addEventListener('change', e => {
 // ═══════════════════════════════════════════════════════
 //  EXPORT / PRINT — Offer sheet
 // ═══════════════════════════════════════════════════════
+// ── Full Project Excel Export ──────────────────────────────────────
+// Builds a multi-sheet workbook covering the whole project: SCADA/Digital,
+// Electrical Cabinet, and IIoT together — using the exact same calc
+// functions and DOM-read helpers the app itself uses, so the numbers can
+// never drift from what's on screen.
+function exportFullProjectExcel() {
+  if (typeof XLSX === 'undefined') { alert('The Excel library failed to load (lib/xlsx.full.min.js) — cannot export.'); return; }
+  const g = G();
+  const lic = calcLicenses(g);
+  const hw = calcHardware(g);
+  const md = calcMandays(g, hw);
+  const parts = getFullProjectCostParts();
+
+  const clientName = document.getElementById('g-name')?.value || '';
+  const country = document.getElementById('g-country')?.value || '';
+  const location = document.getElementById('g-loc')?.value || '';
+  const projectRef = document.getElementById('g-ref')?.value || '';
+  const currency = document.getElementById('g-currency')?.value || 'USD';
+  const projectName = currentProject?.name || '';
+  const today = new Date().toISOString().slice(0,10);
+
+  const wb = XLSX.utils.book_new();
+
+  // ── Summary sheet ──────────────────────────────────────────────
+  const summaryAoa = [
+    ['Technica ERP — Full Project Cost Export'],
+    [],
+    ['Project Name', projectName],
+    ['Client', clientName],
+    ['Country', country],
+    ['Location', location],
+    ['Project Reference', projectRef],
+    ['Currency', currency],
+    ['Export Date', today],
+    [],
+    ['COST SUMMARY', '', 'Amount'],
+    ['Digital / SCADA (License + Hardware + Labor)', '', parts.scada],
+    ['Electrical Cabinet (all-in)', '', parts.cabinet],
+    ['IIoT', '', parts.iiot],
+    ['FULL PROJECT TOTAL', '', parts.total],
+  ];
+  const wsSummary = XLSX.utils.aoa_to_sheet(summaryAoa);
+  wsSummary['!cols'] = [{wch:42},{wch:18},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+
+  // ── Digital / SCADA detail sheet ───────────────────────────────
+  const scadaAoa = [
+    ['Digital / SCADA — Detail'],
+    [],
+    ['SMART FACTORY LICENSE'],
+    ['Item', 'Included', 'Unit Cost', 'Margin %', 'Unit Price', 'Total'],
+  ];
+  lic.rows.forEach(r => scadaAoa.push([r.name, r.included ? 'Yes' : 'No', r.cost, r.margin, r.up, r.total]));
+  scadaAoa.push(['', '', '', '', 'License Total', lic.licTotal]);
+  scadaAoa.push([]);
+
+  scadaAoa.push(['HARDWARE']);
+  scadaAoa.push(['Item', 'Qty', 'Unit Cost', 'Margin %', 'Unit Price', 'Total']);
+  const hwCats = [['Server Room', 'hw-server'], ['Operator Panel', 'hw-op'], ['Commercial PC', 'hw-com']];
+  let hwGrandTotal = 0;
+  hwCats.forEach(([label, bodyId]) => {
+    const rows = readHwCategoryFromDOM(bodyId, true);
+    const withTotals = rows.map(r => ({...r, up: unitPrice(r.cost, r.margin), total: unitPrice(r.cost, r.margin) * r.qty}));
+    const catTotal = withTotals.reduce((s,r)=>s+r.total, 0);
+    if (catTotal > 0 || withTotals.some(r=>r.qty>0)) {
+      scadaAoa.push([label]);
+      withTotals.forEach(r => { if (r.qty > 0) scadaAoa.push([r.name, r.qty, r.cost, r.margin, r.up, r.total]); });
+      hwGrandTotal += catTotal;
+    }
+  });
+  scadaAoa.push(['', '', '', '', 'Hardware Total', hwGrandTotal]);
+  scadaAoa.push([]);
+
+  scadaAoa.push(['MANDAYS — ENGINEERING']);
+  scadaAoa.push(['Item', 'Qty (days)', 'Unit Cost', 'Margin %', 'Unit Price', 'Total']);
+  md.engRows.forEach(r => { if (r.qty > 0) scadaAoa.push([r.name, +r.qty.toFixed(2), r.cost, r.margin, r.up, r.total]); });
+  scadaAoa.push(['', '', '', '', 'Engineering Total', md.engTotal]);
+  scadaAoa.push([]);
+  scadaAoa.push(['MANDAYS — TRAVEL']);
+  scadaAoa.push(['Item', 'Qty', 'Unit Cost', 'Margin %', 'Unit Price', 'Total', 'In Total?']);
+  md.travelRows.forEach(r => scadaAoa.push([r.name, r.qty, r.cost, r.margin, r.up, r.total, r.inTotal ? 'Yes' : 'No']));
+  scadaAoa.push(['', '', '', '', 'Travel Total', md.travelTotal]);
+  scadaAoa.push([]);
+  scadaAoa.push(['', '', '', '', 'DIGITAL / SCADA GRAND TOTAL', lic.licTotal + hwGrandTotal + md.engTotal + md.travelTotal]);
+
+  const wsScada = XLSX.utils.aoa_to_sheet(scadaAoa);
+  wsScada['!cols'] = [{wch:36},{wch:12},{wch:12},{wch:10},{wch:12},{wch:14},{wch:10}];
+  XLSX.utils.book_append_sheet(wb, wsScada, 'Digital - SCADA');
+
+  // ── Electrical Cabinet BOM sheet ───────────────────────────────
+  if (typeof cabinetCatalog !== 'undefined' && cabinetCatalog && typeof cabinetCosting !== 'undefined' && cabinetCosting) {
+    const cabInp = readCabinetInputs();
+    const r = calcCabinet(cabInp, cabinetCatalog, cabinetCosting);
+    const cabAoa = [
+      ['Electrical Cabinet — Bill of Materials'],
+      [],
+      ['Material', r.material], ['Design', r.design], ['Testing', r.testingCost],
+      ['Factory Labor', r.factoryCost], ['Factory Material', r.factoryMaterial],
+      ['TOTAL COST', r.total],
+      [],
+      ['Category', 'Item', 'Selected Product', 'Qty', 'Unit Price', 'Total'],
+    ];
+    r.bom.forEach(l => cabAoa.push([l.category, l.item, l.name || l.item, l.qty, l.unitPrice, l.total]));
+    const wsCab = XLSX.utils.aoa_to_sheet(cabAoa);
+    wsCab['!cols'] = [{wch:20},{wch:26},{wch:34},{wch:8},{wch:12},{wch:14}];
+    XLSX.utils.book_append_sheet(wb, wsCab, 'Electrical Cabinet');
+  }
+
+  // ── IIoT sheet (only if needed) ────────────────────────────────
+  const iiotNeeded = document.getElementById('iiot-needed')?.value === 'Yes';
+  if (iiotNeeded) {
+    const qty = parseInt(document.getElementById('iiot-panels')?.value) || 0;
+    const iiotAoa = [
+      ['IIoT'],
+      [],
+      ['Item', 'Qty', 'Unit Cost', 'Margin', 'Unit Selling Price', 'Total Cost', 'Total Selling Price'],
+      ['IIoT Panel', qty, IIOT_UNIT_COST, IIOT_MARGIN_PCT + '%', IIOT_UNIT_PRICE, qty * IIOT_UNIT_COST, qty * IIOT_UNIT_PRICE],
+    ];
+    const wsIiot = XLSX.utils.aoa_to_sheet(iiotAoa);
+    wsIiot['!cols'] = [{wch:16},{wch:8},{wch:12},{wch:10},{wch:16},{wch:14},{wch:16}];
+    XLSX.utils.book_append_sheet(wb, wsIiot, 'IIoT');
+  }
+
+  const safeName = (projectName || 'Project').replace(/[^a-z0-9\s]/gi,'').trim().replace(/\s+/g,'_') || 'Project';
+  XLSX.writeFile(wb, `${safeName} - Full Project Cost.xlsx`);
+}
+
 function exportOffer() {
   const g   = G();
   const lic = calcLicenses(g);
@@ -4586,6 +4743,7 @@ function calcCabinetPage() {
   sv('dash-cab-factorylabor', fmt(r.factoryCost));
   sv('dash-cab-factorymat', fmt(r.factoryMaterial));
   sv('dash-cab-total', fmt(r.total));
+  if (typeof syncFullProjectCost === 'function') syncFullProjectCost();
   sv('cab-detail-material', fmt(r.material));
   sv('cab-detail-design', fmt(r.design));
   sv('cab-detail-testing', fmt(r.testingCost));
