@@ -367,6 +367,7 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
     <div class="nav-item" data-p="cabinet-material-pr"><span class="nav-dot"></span>Material for PR</div>
     <div class="nav-group" onclick="toggleNavGroup(this)">Digital Configuration<span class="nav-group-arrow">▾</span></div>
     <div class="nav-item" data-p="general"><span class="nav-dot"></span>General Info</div>
+    <div class="nav-item" data-p="iiot"><span class="nav-dot"></span>IIoT</div>
     <div class="nav-item" data-p="equipment"><span class="nav-dot"></span>Technica Equipment</div>
     <div class="nav-item" data-p="supplier"><span class="nav-dot"></span>Supplier Equipment</div>
     <div class="nav-group" onclick="toggleNavGroup(this)">SMART Factory<span class="nav-group-arrow">▾</span></div>
@@ -682,7 +683,7 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
   <div class="ph"><div><div class="ph-title">Digital Configuration</div><div class="ph-sub">Technica questionnaire — technical details for the SCADA system itself</div></div></div>
 
   <div class="card">
-    <div class="card-head">1. Plants / Rooms / Areas</div>
+    <div class="card-head">Plants / Rooms / Areas</div>
     <div class="g2">
       <div class="fg"><label class="fl">Machines Available</label>
         <select id="g-machines"><option>More Than Eleven</option><option>Six Till Ten</option><option>One Till Five</option></select></div>
@@ -691,7 +692,7 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
   </div>
 
   <div class="card">
-    <div class="card-head">2. Communication Type</div>
+    <div class="card-head">Communication Type</div>
     <div class="g2">
       <div class="fg"><label class="fl">Preferred Communication</label>
         <select id="g-comm"><option>Wired</option><option>Wireless</option><option>Both</option></select></div>
@@ -701,14 +702,14 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
   </div>
 
   <div class="card">
-    <div class="card-head">3. External Sensors</div>
+    <div class="card-head">External Sensors</div>
     <div class="fg"><label class="fl">External Sensors Required?</label>
       <select id="g-sensors"><option>Not Required</option><option>Required</option></select></div>
     <div class="note">External sensors provide basic production counting and machine statuses. Requires additional hardware: electrical panel, PLC, cable routing, junction boxes.</div>
   </div>
 
   <div class="card">
-    <div class="card-head">4. Network Cable Routing</div>
+    <div class="card-head">Network Cable Routing</div>
     <div class="g2">
       <div class="fg"><label class="fl">Cable Routing</label>
         <select id="g-routing"><option>Provided By Technica</option><option>Provided By Client</option></select></div>
@@ -717,7 +718,7 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
   </div>
 
   <div class="card">
-    <div class="card-head">5. Cable Trays</div>
+    <div class="card-head">Cable Trays</div>
     <div class="g2">
       <div class="fg"><label class="fl">Cable Trays Available on Site?</label>
         <select id="g-trays"><option>Yes</option><option>No</option></select></div>
@@ -727,7 +728,7 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
   </div>
 
   <div class="card">
-    <div class="card-head">6. PC Locations</div>
+    <div class="card-head">PC Locations</div>
     <div class="g2">
       <div class="fg"><label class="fl">Servers Location</label>
         <select id="g-srv-loc"><option>Server Room</option><option>Control Room</option><option>Other</option></select></div>
@@ -737,7 +738,7 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
   </div>
 
   <div class="card">
-    <div class="card-head">7. Number of PCs</div>
+    <div class="card-head">Number of PCs</div>
     <div class="g3">
       <div class="fg"><label class="fl">Total PCs</label>
         <select id="g-pcs"><option>Three</option><option>One</option><option>Two</option><option>Four</option><option>Five</option></select></div>
@@ -750,7 +751,7 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
   </div>
 
   <div class="card">
-    <div class="card-head">8 &amp; 9. Server / Client PC Provider</div>
+    <div class="card-head">Server / Client PC Provider</div>
     <div class="g2">
       <div class="fg"><label class="fl">Server PC Provided By</label>
         <select id="g-srv-prov"><option>Provided By Technica</option><option>Provided By Customer</option></select></div>
@@ -760,7 +761,7 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
   </div>
 
   <div class="card">
-    <div class="card-head">10. SCADA Platform</div>
+    <div class="card-head">SCADA Platform</div>
     <div class="fg"><label class="fl">Is the platform provided by the customer?</label>
       <select id="g-platform" onchange="recalcAll()"><option>No</option><option>Provided By Customer</option></select></div>
     <div id="platform-customer-note" class="note" style="display:none;margin-top:10px;background:var(--amber-bg);border-color:rgba(245,166,35,.25);color:var(--amber)">⚠ Platform provided by customer — Smart Factory License section will be zeroed out.</div>
@@ -768,7 +769,7 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
   </div>
 
   <div class="card">
-    <div class="card-head">11. Remote Access</div>
+    <div class="card-head">Remote Access</div>
     <div class="g2">
       <div class="fg"><label class="fl">Remote Access Required?</label>
         <select id="g-remote"><option>Yes</option><option>No</option></select></div>
@@ -778,7 +779,7 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
   </div>
 
   <div class="card">
-    <div class="card-head">12–17. Additional Settings</div>
+    <div class="card-head">Additional Settings</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="fg"><label class="fl">Dynamic Reports?</label><select id="g-dynrep"><option>Yes</option><option>No</option></select></div>
       <div class="fg"><label class="fl">Reports Printable?</label><select id="g-print"><option>Yes</option><option>No</option></select></div>
@@ -787,6 +788,39 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
       <div class="fg"><label class="fl">Long Term Archiving?</label><select id="g-archive"><option>Yes</option><option>No</option></select></div>
       <div class="fg"><label class="fl">MES/ERP Integration?</label><select id="g-erp"><option>No</option><option>Yes</option></select></div>
       <div class="fg full"><label class="fl">Alarm Email Notifications?</label><select id="g-alarm"><option>No</option><option>Yes</option></select></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ IIOT ═══ -->
+<div id="page-iiot" class="page">
+  <div class="ph"><div><div class="ph-title">IIoT</div><div class="ph-sub">Industrial IoT panels for this project</div></div></div>
+
+  <div class="card">
+    <div class="card-head">IIoT Panels</div>
+    <div class="fg" style="max-width:220px"><label class="fl">IIoT Needed?</label>
+      <select id="iiot-needed" onchange="calcIiotPanels()"><option value="No">No</option><option value="Yes">Yes</option></select>
+    </div>
+    <div id="iiot-panels-wrap" style="display:none;margin-top:14px">
+      <div class="fg" style="max-width:220px"><label class="fl">How Many Panels?</label>
+        <input type="number" id="iiot-panels" min="1" step="1" placeholder="1"
+          oninput="this.value = this.value.replace(/[^0-9]/g,''); if(this.value && parseInt(this.value)<1) this.value='1'; calcIiotPanels()"
+          onchange="if(this.value===''){}else if(parseInt(this.value)<1){this.value='1';} calcIiotPanels()">
+      </div>
+      <div class="tbl-wrap" style="margin-top:14px"><table>
+        <thead><tr><th>Item</th><th>Qty</th><th>Unit Cost</th><th>Margin</th><th>Unit Selling Price</th><th>Total Cost</th><th>Total Selling Price</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>IIoT Panel</td>
+            <td class="n" id="iiot-qty">0</td>
+            <td class="n">$1,100</td>
+            <td class="n">45%</td>
+            <td class="n">$2,000</td>
+            <td class="n" id="iiot-totalcost">$0</td>
+            <td class="n" id="iiot-totalprice">$0</td>
+          </tr>
+        </tbody>
+      </table></div>
     </div>
   </div>
 </div>
@@ -824,29 +858,6 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox"> Enable/Disable Production Lines</label>
     </div>
     <div class="fg"><label class="fl">Other Control Functions</label><input type="text" placeholder="Specify..."></div>
-  </div>
-
-  <div class="card">
-    <div class="card-head">IIoT</div>
-    <div class="fg" style="max-width:220px"><label class="fl">How Many Panels?</label>
-      <input type="number" id="pd-iiot-panels" min="1" step="1" placeholder="1"
-        oninput="this.value = this.value.replace(/[^0-9]/g,''); if(this.value && parseInt(this.value)<1) this.value='1'; calcIiotPanels()"
-        onchange="if(this.value===''){}else if(parseInt(this.value)<1){this.value='1';} calcIiotPanels()">
-    </div>
-    <div class="tbl-wrap" style="margin-top:14px"><table>
-      <thead><tr><th>Item</th><th>Qty</th><th>Unit Cost</th><th>Margin</th><th>Unit Selling Price</th><th>Total Cost</th><th>Total Selling Price</th></tr></thead>
-      <tbody>
-        <tr>
-          <td>IIoT Panel</td>
-          <td class="n" id="pd-iiot-qty">0</td>
-          <td class="n">$1,100</td>
-          <td class="n">45%</td>
-          <td class="n">$2,000</td>
-          <td class="n" id="pd-iiot-totalcost">$0</td>
-          <td class="n" id="pd-iiot-totalprice">$0</td>
-        </tr>
-      </tbody>
-    </table></div>
   </div>
 </div>
 
@@ -1823,11 +1834,15 @@ const IIOT_UNIT_PRICE = 2000;
 const IIOT_MARGIN_PCT = 45;
 const IIOT_UNIT_COST = IIOT_UNIT_PRICE * (1 - IIOT_MARGIN_PCT / 100); // = 1100
 function calcIiotPanels() {
-  const el = document.getElementById('pd-iiot-panels');
-  const qty = Math.max(0, parseInt(el.value) || 0);
-  sv('pd-iiot-qty', String(qty));
-  sv('pd-iiot-totalcost', fmt(qty * IIOT_UNIT_COST));
-  sv('pd-iiot-totalprice', fmt(qty * IIOT_UNIT_PRICE));
+  const neededEl = document.getElementById('iiot-needed');
+  const wrap = document.getElementById('iiot-panels-wrap');
+  const needed = neededEl && neededEl.value === 'Yes';
+  if (wrap) wrap.style.display = needed ? '' : 'none';
+  const el = document.getElementById('iiot-panels');
+  const qty = needed ? Math.max(0, parseInt(el?.value) || 0) : 0;
+  sv('iiot-qty', String(qty));
+  sv('iiot-totalcost', fmt(qty * IIOT_UNIT_COST));
+  sv('iiot-totalprice', fmt(qty * IIOT_UNIT_PRICE));
 }
 
 // word → integer (Excel's text-based number system)
@@ -3228,7 +3243,7 @@ function buildProjectSnapshot() {
     alarms: buildAlarmsSnapshot(),
   };
 
-  ['#page-client-info', '#page-strategic', '#page-customer-req', '#page-technical-data', '#page-general', '#page-production'].forEach(sel => {
+  ['#page-client-info', '#page-strategic', '#page-customer-req', '#page-technical-data', '#page-general', '#page-iiot', '#page-production'].forEach(sel => {
     document.querySelectorAll(sel + ' [id]').forEach(el => {
       if (!el.matches('input, select, textarea')) return;
       snap.fields[el.id] = el.type === 'checkbox' ? el.checked : el.value;
@@ -3684,7 +3699,7 @@ function returnToProjectsHome() {
 // previous session) and before opening one (so stale fields from the last
 // project don't bleed into fields the new snapshot doesn't happen to set).
 function resetAppToBlank() {
-  document.querySelectorAll('#page-client-info input, #page-client-info select, #page-strategic input, #page-strategic select, #page-strategic textarea, #page-customer-req input, #page-customer-req select, #page-customer-req textarea, #page-technical-data input, #page-general input, #page-general select, #page-production input, #page-production select').forEach(el => {
+  document.querySelectorAll('#page-client-info input, #page-client-info select, #page-strategic input, #page-strategic select, #page-strategic textarea, #page-customer-req input, #page-customer-req select, #page-customer-req textarea, #page-technical-data input, #page-general input, #page-general select, #page-iiot input, #page-iiot select, #page-production input, #page-production select').forEach(el => {
     if (el.type === 'checkbox') el.checked = false; else if (el.tagName === 'SELECT') el.selectedIndex = 0; else el.value = '';
   });
   ['equip-t-body','equip-s-body'].forEach(id => { const tb = document.getElementById(id); if (tb) tb.innerHTML = ''; });
