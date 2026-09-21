@@ -449,9 +449,10 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
 
   <div class="card">
     <div class="card-head">0. Client Details</div>
-    <div class="g2">
+    <div class="g3">
       <div class="fg"><label class="fl">Client Name</label><input type="text" id="g-name" placeholder="Enter client name"></div>
       <div class="fg"><label class="fl">Location</label><input type="text" id="g-loc" placeholder="Site location"></div>
+      <div class="fg"><label class="fl">Project Reference</label><input type="text" id="g-ref" placeholder="e.g. SOT-1231"></div>
     </div>
   </div>
 
@@ -1163,16 +1164,20 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
 </div>
 
 <div id="page-alarms-info" class="page">
-  <div class="ph"><div><div class="ph-title">Alarms — Project Info</div><div class="ph-sub">Reference &amp; site details for this project's alarm list — Engineer, Administrator, and Super Admin only</div></div></div>
+  <div class="ph"><div><div class="ph-title">Alarms — Project Info</div><div class="ph-sub">Engineer, Administrator, and Super Admin only</div></div></div>
   <div class="card">
-    <div class="card-head">Project Reference</div>
+    <div class="card-head">Project Details</div>
+    <div class="note" style="margin-bottom:14px">Client, Location and Project Reference are shared with the rest of this project — edit them in <a href="#" onclick="document.querySelector('.nav-item[data-p=general]').click();return false" style="color:var(--copper)">General Info</a> and they'll carry through to the alarm exports automatically.</div>
     <div class="g3">
-      <div class="fg"><label class="fl">Project Reference</label><input type="text" id="al-project-ref" placeholder="e.g. SOT-1231" oninput="calcAlarmsPage()"></div>
-      <div class="fg"><label class="fl">Site</label><input type="text" id="al-project-site" placeholder="e.g. Doha, Qatar" oninput="calcAlarmsPage()"></div>
-      <div class="fg"><label class="fl">Date</label><input type="text" id="al-project-date" placeholder="YYYY-MM-DD"></div>
+      <div class="fg"><label class="fl">Client</label><input type="text" id="al-display-client" disabled></div>
+      <div class="fg"><label class="fl">Site / Location</label><input type="text" id="al-display-site" disabled></div>
+      <div class="fg"><label class="fl">Project Reference</label><input type="text" id="al-display-ref" disabled></div>
+    </div>
+    <div class="g2" style="margin-top:14px">
+      <div class="fg"><label class="fl">Export Date</label><input type="text" id="al-project-date" placeholder="YYYY-MM-DD"></div>
+      <div class="fg"></div>
     </div>
     <div class="fg" style="margin-top:14px"><label class="fl">Notes</label><textarea id="al-project-notes" placeholder="Anything worth noting about this alarm list…" oninput="calcAlarmsPage()"></textarea></div>
-    <div class="note" style="margin-top:14px">Project Name and Client are shared with the rest of this project (see General Info). Engineer is auto-filled from your account.</div>
   </div>
   <div class="g3">
     <div class="stat"><div class="stat-label">Engineer</div><div class="stat-value c-copper" id="al-stat-engineer" style="font-size:17px">—</div><div class="stat-sub">From your account</div></div>
@@ -5393,7 +5398,13 @@ function changeAlarmQty(key, field, val) {
   cfg[field] = n;
   alarmsState.quantities[key] = cfg;
   buildAlarmEntities();
-  if (alarmsState.activeEntity && !alarmsState.entityAlarms[alarmsState.activeEntity]) alarmsState.activeEntity = null;
+  if (alarmsState.entityAlarms[key]) {
+    // This entity now has alarms (or still does) — show them right away
+    // rather than requiring a separate click on the equipment name.
+    alarmsState.activeEntity = key;
+  } else if (alarmsState.activeEntity && !alarmsState.entityAlarms[alarmsState.activeEntity]) {
+    alarmsState.activeEntity = null;
+  }
   renderAlarmsEquipmentList();
   renderAlarmsTable(alarmsState.activeEntity);
   calcAlarmsPage();
@@ -5719,8 +5730,8 @@ function alarmsProjInfo() {
   const projectName = currentProject?.name || '';
   return {
     name: projectName, client,
-    ref: document.getElementById('al-project-ref')?.value || '',
-    site: document.getElementById('al-project-site')?.value || '',
+    ref: document.getElementById('g-ref')?.value || '',
+    site: document.getElementById('g-loc')?.value || '',
     date: document.getElementById('al-project-date')?.value || '',
     notes: document.getElementById('al-project-notes')?.value || '',
     engineer: currentUser?.label || currentUser?.name || '',
@@ -5836,8 +5847,19 @@ function calcAlarmsPage() {
   sv2('al-exp-eqalarms', eqAlarms.toLocaleString());
   sv2('al-exp-common', commonActive.toLocaleString());
   sv2('al-exp-custom', customActive.toLocaleString());
+  syncAlarmsDisplayFields();
 }
 function sv2(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+// Client / Location / Project Reference are owned by General Info — this just
+// mirrors the live values so the Alarms Info page always shows what's
+// actually going to be used, without a second copy of the data to keep in sync.
+function syncAlarmsDisplayFields() {
+  const setDisp = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || '—'; };
+  setDisp('al-display-client', document.getElementById('g-name')?.value);
+  setDisp('al-display-site', document.getElementById('g-loc')?.value);
+  setDisp('al-display-ref', document.getElementById('g-ref')?.value);
+}
+function todayIso() { return new Date().toISOString().slice(0,10); }
 
 function initAlarmsPageIfNeeded() {
   if (!alarmsCatalog) { ensureAlarmsCatalogLoaded().then(() => { renderAlarmsEquipmentList(); renderAlarmsTable(alarmsState.activeEntity); renderCommonAndCustomPage(); calcAlarmsPage(); }); return; }
@@ -5848,11 +5870,11 @@ function initAlarmsPageIfNeeded() {
 }
 
 // ── Project snapshot integration (unified save/restore) ──────────
+// Client/Location/Reference are NOT captured here — they live on
+// #page-general and are already swept generically by buildProjectSnapshot().
 function buildAlarmsSnapshot() {
   return {
     info: {
-      ref: document.getElementById('al-project-ref')?.value || '',
-      site: document.getElementById('al-project-site')?.value || '',
       date: document.getElementById('al-project-date')?.value || '',
       notes: document.getElementById('al-project-notes')?.value || '',
     },
@@ -5875,16 +5897,15 @@ function applyAlarmsSnapshot(snap) {
   alarmsState.collapsedCats = null;
   const info = (snap && snap.info) || {};
   const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
-  setVal('al-project-ref', info.ref);
-  setVal('al-project-site', info.site);
-  setVal('al-project-date', info.date);
+  setVal('al-project-date', info.date || todayIso());
   setVal('al-project-notes', info.notes);
   if (alarmsCatalog) { renderAlarmsEquipmentList(); renderAlarmsTable(null); renderCommonAndCustomPage(); }
   calcAlarmsPage();
 }
 function resetAlarmsToBlank() {
-  alarmsState = { info:{ref:'',site:'',date:'',notes:''}, quantities:{}, entityAlarms:{}, commonAlarms:[], customEquipment:[], customProjectAlarms:[], activeEntity:null, collapsedCats:null, showDeleted:false, alarmSearch:'', wizardVals:null };
-  ['al-project-ref','al-project-site','al-project-date','al-project-notes'].forEach(id => { const el=document.getElementById(id); if (el) el.value=''; });
+  alarmsState = { info:{date:'',notes:''}, quantities:{}, entityAlarms:{}, commonAlarms:[], customEquipment:[], customProjectAlarms:[], activeEntity:null, collapsedCats:null, showDeleted:false, alarmSearch:'', wizardVals:null };
+  const dateEl = document.getElementById('al-project-date'); if (dateEl) dateEl.value = todayIso();
+  const notesEl = document.getElementById('al-project-notes'); if (notesEl) notesEl.value = '';
   if (alarmsCatalog) { renderAlarmsEquipmentList(); renderAlarmsTable(null); renderCommonAndCustomPage(); }
   calcAlarmsPage();
 }
