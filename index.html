@@ -369,6 +369,11 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
     <div class="nav-item" data-p="cabinet-config"><span class="nav-dot"></span>Configurator</div>
     <div class="nav-item" data-p="cabinet-bom"><span class="nav-dot"></span>Bill of Materials</div>
     <div class="nav-item" data-p="cabinet-material-pr"><span class="nav-dot"></span>Material for PR</div>
+    <div class="nav-group" id="nav-group-alarms" onclick="toggleNavGroup(this)" style="display:none">Alarms Configuration<span class="nav-group-arrow">▾</span></div>
+    <div class="nav-item" data-p="alarms-info" id="nav-item-alarms-info" style="display:none"><span class="nav-dot"></span>Project Info</div>
+    <div class="nav-item" data-p="alarms-config" id="nav-item-alarms-config" style="display:none"><span class="nav-dot"></span>Equipment &amp; Alarms</div>
+    <div class="nav-item" data-p="alarms-common" id="nav-item-alarms-common" style="display:none"><span class="nav-dot"></span>Common &amp; Custom</div>
+    <div class="nav-item" data-p="alarms-export" id="nav-item-alarms-export" style="display:none"><span class="nav-dot"></span>Export</div>
     <div class="nav-group" onclick="toggleNavGroup(this)">Suppliers<span class="nav-group-arrow">▾</span></div>
     <div class="nav-item" data-p="suppliers-overview" id="nav-item-suppliers-overview" style="display:none"><span class="nav-dot"></span>Overview</div>
     <div class="nav-item" data-p="suppliers" id="nav-item-suppliers" style="display:none"><span class="nav-dot"></span>Directory</div>
@@ -1154,6 +1159,129 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
       <tbody id="pr-material-body"></tbody>
       <tfoot><tr class="tr-total"><td colspan="6" style="font-weight:600">TOTAL MATERIAL</td><td class="n" style="font-weight:600;color:var(--green)" id="pr-material-total">$0</td><td colspan="2"></td></tr></tfoot>
     </table></div>
+  </div>
+</div>
+
+<div id="page-alarms-info" class="page">
+  <div class="ph"><div><div class="ph-title">Alarms — Project Info</div><div class="ph-sub">Reference &amp; site details for this project's alarm list — Engineer, Administrator, and Super Admin only</div></div></div>
+  <div class="card">
+    <div class="card-head">Project Reference</div>
+    <div class="g3">
+      <div class="fg"><label class="fl">Project Reference</label><input type="text" id="al-project-ref" placeholder="e.g. SOT-1231" oninput="calcAlarmsPage()"></div>
+      <div class="fg"><label class="fl">Site</label><input type="text" id="al-project-site" placeholder="e.g. Doha, Qatar" oninput="calcAlarmsPage()"></div>
+      <div class="fg"><label class="fl">Date</label><input type="text" id="al-project-date" placeholder="YYYY-MM-DD"></div>
+    </div>
+    <div class="fg" style="margin-top:14px"><label class="fl">Notes</label><textarea id="al-project-notes" placeholder="Anything worth noting about this alarm list…" oninput="calcAlarmsPage()"></textarea></div>
+    <div class="note" style="margin-top:14px">Project Name and Client are shared with the rest of this project (see General Info). Engineer is auto-filled from your account.</div>
+  </div>
+  <div class="g3">
+    <div class="stat"><div class="stat-label">Engineer</div><div class="stat-value c-copper" id="al-stat-engineer" style="font-size:17px">—</div><div class="stat-sub">From your account</div></div>
+    <div class="stat"><div class="stat-label">Equipment Configured</div><div class="stat-value c-blue" id="al-stat-entities">0</div><div class="stat-sub">Types with qty &gt; 0</div></div>
+    <div class="stat"><div class="stat-label">Active Alarms</div><div class="stat-value c-green" id="al-stat-alarms">0</div><div class="stat-sub">Across equipment, common &amp; custom</div></div>
+  </div>
+</div>
+
+<div id="page-alarms-config" class="page">
+  <div class="ph"><div><div class="ph-title">Equipment &amp; Alarms</div><div class="ph-sub">Set a quantity for each equipment type to pull in its alarms, then enable or disable individual alarms</div></div></div>
+  <div id="alarms-catalog-status" class="note" style="display:none;margin-bottom:14px"></div>
+  <div style="display:grid;grid-template-columns:340px 1fr;gap:18px;align-items:start">
+    <div class="card" style="max-height:calc(100vh - 140px);overflow-y:auto">
+      <div class="card-head">Equipment</div>
+      <div class="fg" style="margin-bottom:12px"><input type="text" id="al-eq-search" placeholder="Search equipment…" oninput="renderAlarmsEquipmentList()"></div>
+      <div id="alarms-equipment-list"></div>
+    </div>
+    <div class="card" style="max-height:calc(100vh - 140px);overflow-y:auto">
+      <div id="alarms-table-header"></div>
+      <div id="alarms-table-container"></div>
+    </div>
+  </div>
+</div>
+
+<div id="page-alarms-common" class="page">
+  <div class="ph"><div><div class="ph-title">Common &amp; Custom Alarms</div><div class="ph-sub">Project-wide alarms that don't belong to one specific equipment type</div></div></div>
+
+  <div class="card">
+    <div class="card-head" style="justify-content:space-between">
+      Common Alarms Wizard
+      <button class="btn btn-primary" style="padding:6px 12px;font-size:12px;margin-left:auto" onclick="applyCommonAlarmsWizard()">Generate Common Alarms</button>
+    </div>
+    <div class="note" style="margin-bottom:14px">Batteries, UPS units, temperature sensors, e-stops and similar infrastructure alarms that apply per-panel, per-equipment, or per-line rather than to one specific equipment type. Set the counts below, then generate — this replaces any previously generated common alarms.</div>
+    <div id="alarms-wizard-fields"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Generated Common Alarms</div>
+    <div id="alarms-common-summary" class="note" style="margin-bottom:14px">No common alarms generated yet.</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Tag</th><th>Description</th><th>Category</th><th>Priority</th><th></th></tr></thead>
+      <tbody id="alarms-common-body"></tbody>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Custom Equipment</div>
+    <div class="note" style="margin-bottom:14px">Not in the database under this name? Add it here — pick an existing equipment type whose alarm set is the closest match, and it'll appear in the Equipment list under whichever category you choose.</div>
+    <div class="g4" style="align-items:flex-end">
+      <div class="fg"><label class="fl">New Equipment Name</label><input type="text" id="al-custom-eq-name" placeholder="e.g. Custom Depalletizer"></div>
+      <div class="fg"><label class="fl">Category</label>
+        <select id="al-custom-eq-cat">
+          <option value="Equipments">Equipments</option>
+          <option value="General">General</option>
+          <option value="Motors">Motors</option>
+          <option value="Pneumatics">Pneumatics</option>
+          <option value="Sensors">Sensors</option>
+          <option value="Supplier Machines">Supplier Machines</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Copy Alarms From</label><select id="al-custom-eq-template"></select></div>
+      <button class="btn btn-primary" onclick="submitCustomAlarmEquipment()">+ Add Equipment</button>
+    </div>
+    <div id="alarms-custom-eq-list" style="margin-top:14px"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head" style="justify-content:space-between">
+      Custom Project Alarms
+      <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px;margin-left:auto" onclick="addCustomProjectAlarm()">+ Add Custom Alarm</button>
+    </div>
+    <div class="note" style="margin-bottom:14px">Anything not covered by the equipment database or the wizard above — a one-off, project-specific alarm.</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Name</th><th>Description</th><th>Group</th><th>Category</th><th>Value</th><th></th></tr></thead>
+      <tbody id="alarms-custom-body"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<div id="page-alarms-export" class="page">
+  <div class="ph"><div><div class="ph-title">Alarms — Export</div><div class="ph-sub">Download the alarm list, or save it as part of this project</div></div></div>
+
+  <div class="stat-grid">
+    <div class="stat"><div class="stat-label">Equipment Types</div><div class="stat-value c-blue" id="al-exp-eqtypes">0</div><div class="stat-sub">Configured with qty &gt; 0</div></div>
+    <div class="stat"><div class="stat-label">Equipment Alarms</div><div class="stat-value c-green" id="al-exp-eqalarms">0</div></div>
+    <div class="stat"><div class="stat-label">Common Alarms</div><div class="stat-value c-amber" id="al-exp-common">0</div></div>
+    <div class="stat"><div class="stat-label">Custom Alarms</div><div class="stat-value c-copper" id="al-exp-custom">0</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Export</div>
+    <div class="g3">
+      <button class="btn btn-primary" onclick="exportAlarmsCsv()">⬇ Export CSV</button>
+      <button class="btn btn-ghost" onclick="openAlarmsPlcExport('siemens')">🔷 Siemens SCL Export</button>
+      <button class="btn btn-ghost" onclick="openAlarmsPlcExport('rockwell')">🔶 Rockwell Export</button>
+    </div>
+    <div class="note" style="margin-top:14px">CSV includes every active alarm with its full context. Siemens and Rockwell exports produce PLC-native tag declarations, grouped and ordered to match each platform's real import format.</div>
+  </div>
+
+  <div class="card" id="alarms-plc-export-panel" style="display:none">
+    <div class="card-head" id="alarms-plc-export-title">PLC Export Options</div>
+    <div class="g2">
+      <div class="fg"><label class="fl" id="alarms-plc-name-label">Tag Name</label><input type="text" id="alarms-plc-name-input"></div>
+      <div class="fg"><label class="fl">File Extension</label>
+        <select id="alarms-plc-ext-select"><option value="txt">.txt</option><option value="native">Native</option></select>
+      </div>
+    </div>
+    <div class="note" id="alarms-plc-name-hint" style="margin-top:10px"></div>
+    <div style="margin-top:14px"><button class="btn btn-primary" onclick="confirmAlarmsPlcExport()">Download</button></div>
   </div>
 </div>
 
@@ -2222,6 +2350,13 @@ function doLogin() {
   if (canSeeSuppliers) renderSuppliersPage();
   refreshSupplierPricingLinks();
 
+  const canSeeAlarms = isAdmin || match.role === 'engineer';
+  const navGroupAlarms = document.getElementById('nav-group-alarms'); if (navGroupAlarms) navGroupAlarms.style.display = canSeeAlarms ? '' : 'none';
+  ['nav-item-alarms-info', 'nav-item-alarms-config', 'nav-item-alarms-common', 'nav-item-alarms-export'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = canSeeAlarms ? '' : 'none';
+  });
+  if (canSeeAlarms) ensureAlarmsCatalogLoaded();
+
   err.textContent = '';
   showProjectsHome();
 }
@@ -2240,10 +2375,14 @@ function doLogout() {
     const el = document.getElementById(id); if (el) el.style.display = 'none';
   });
   document.querySelectorAll('.supplier-link-badge').forEach(b => b.remove());
+  const navGroupAlarms = document.getElementById('nav-group-alarms'); if (navGroupAlarms) navGroupAlarms.style.display = 'none';
+  ['nav-item-alarms-info', 'nav-item-alarms-config', 'nav-item-alarms-common', 'nav-item-alarms-export'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = 'none';
+  });
   // Bounce back to Dashboard if they were on a page that requires being
   // signed in (User Management, My Profile, Suppliers) — none of these
   // make sense to show behind the login overlay.
-  const restrictedPages = ['page-users', 'page-profile', 'page-suppliers', 'page-suppliers-overview', 'page-suppliers-vendors', 'page-suppliers-history'];
+  const restrictedPages = ['page-users', 'page-profile', 'page-suppliers', 'page-suppliers-overview', 'page-suppliers-vendors', 'page-suppliers-history', 'page-alarms-info', 'page-alarms-config', 'page-alarms-common', 'page-alarms-export'];
   const onRestrictedPage = restrictedPages.some(id => document.getElementById(id)?.classList.contains('active'));
   if (onRestrictedPage) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -2784,6 +2923,7 @@ function buildProjectSnapshot() {
     license: { selection: { ...licenseSelection }, blocks: [] },
     mandays: { rows: { 'md-eng-body': captureRows('md-eng-body'), 'md-travel-body': captureRows('md-travel-body') } },
     cabinet: buildCabinetSnapshot(),
+    alarms: buildAlarmsSnapshot(),
   };
 
   ['#page-general', '#page-production'].forEach(sel => {
@@ -2850,6 +2990,7 @@ function applyProjectSnapshot(snap) {
   ['md-eng-body','md-travel-body'].forEach(id => restoreRows(id, snap.mandays?.rows?.[id]));
 
   if (snap.cabinet) applyCabinetSnapshot(snap.cabinet);
+  applyAlarmsSnapshot(snap.alarms);
 
   recalcAll();
 }
@@ -3255,6 +3396,7 @@ function resetAppToBlank() {
   });
   recalcAll();
   calcCabinetPage();
+  resetAlarmsToBlank();
 }
 
 async function refreshGitHubProjectList() {
@@ -3342,6 +3484,7 @@ function roleDescription(role) {
     sales: 'Sees everything except cost & margin. Can edit everything else.',
     tendering: 'Sees everything, cost & margin read-only. Can edit everything else.',
     procurement: 'Sees & edits only cost & margin — everything else hidden.',
+    engineer: 'Sees everything, cost & margin read-only. Full access to Alarms Configuration.',
     admin: 'Full access, including User Management.',
     superadmin: 'Full access, including managing other admins.',
   }[role] || '';
@@ -3372,6 +3515,7 @@ function userRowInnerHtml(username, u) {
       <option value="sales"${u.role==='sales'?' selected':''}>Sales</option>
       <option value="tendering"${u.role==='tendering'?' selected':''}>Tendering</option>
       <option value="procurement"${u.role==='procurement'?' selected':''}>Procurement</option>
+      <option value="engineer"${u.role==='engineer'?' selected':''}>Engineer</option>
       <option value="admin"${u.role==='admin'?' selected':''}>Administrator</option>
       ${superAdminOption}
     </select></td>
@@ -5009,6 +5153,675 @@ async function saveMyProfile() {
 setPricingLock(true);
 recalcAll();
 restoreGitHubSyncPrefs();
+// ══════════════════════════════════════════════════════════════════
+//  ALARMS CONFIGURATION
+//  Ported from the alarms_configurator app (MiguelFaraj-Eng/alarms_configurator).
+//  Catalog is pre-compressed at build time: each sheet stores its shared
+//  fields (mainCat/subCat/subSubCat/severity/tag) once, with rows as
+//  positional arrays [name, desc, line, num] — losslessly equivalent to the
+//  source app's per-row objects, just far smaller on the wire. A rare
+//  fallback (`rowsFull`) covers the handful of sheets where those fields
+//  aren't constant across every row.
+// ══════════════════════════════════════════════════════════════════
+let alarmsCatalog = null;
+let commonAlarmsData = null;
+let alarmsCatalogLoadPromise = null;
+let ALARM_EQ_CATS = [];  // [{cat, items:[names...]}]
+
+let alarmsState = {
+  info: { ref: '', site: '', date: '', notes: '' },
+  quantities: {},        // "cat|item" -> {qty, line, start}
+  entityAlarms: {},      // "cat|item" -> {eqName, eqCat, qty, line, start, alarmGroups}
+  commonAlarms: [],
+  customEquipment: [],   // [{name, cat, templateCat, templateItem}]
+  customProjectAlarms: [],
+  activeEntity: null,
+  collapsedCats: null,   // Set, lazily initialized
+  showDeleted: false,
+  alarmSearch: '',
+  wizardVals: null,      // lazily initialized to WIZARD_DEFAULTS
+};
+
+const ALARM_WIZARD_DEFAULTS = {
+  insightechBatt:6, insightechUps:6, insightechUpsBuffer:6,
+  robotPanels:0, robotBattPerPanel:6,
+  eBattPerUnit:6, eUpsPerUnit:6, eUpsBufferPerUnit:6,
+  eTempSensors:10, eGuardSwitches:10, eLightBarriers:20, eValves:1,
+  lBattPerUnit:6, lUpsPerUnit:6,
+  lTempSensors:10, lPneumatic:10, lEStop:5, lERope:20, lLightBarriers:20,
+  zoneLines:10
+};
+const ALARM_WIZARD_MAX = {
+  insightechBatt:6, insightechUps:6, insightechUpsBuffer:6,
+  robotPanels:10, robotBattPerPanel:6,
+  eBattPerUnit:6, eUpsPerUnit:6, eUpsBufferPerUnit:6,
+  eTempSensors:10, eGuardSwitches:10, eLightBarriers:20, eValves:5,
+  lBattPerUnit:6, lUpsPerUnit:6,
+  lTempSensors:10, lPneumatic:10, lEStop:5, lERope:20, lLightBarriers:20,
+  zoneLines:10
+};
+const ALARM_WIZARD_LABELS = {
+  insightechBatt:'Insightech panel — batteries', insightechUps:'Insightech panel — UPS units', insightechUpsBuffer:'Insightech panel — UPS buffer units',
+  robotPanels:'Robot panels (count)', robotBattPerPanel:'Batteries per robot panel',
+  eBattPerUnit:'Batteries per equipment unit', eUpsPerUnit:'UPS units per equipment unit', eUpsBufferPerUnit:'UPS buffer units per equipment unit',
+  eTempSensors:'Temperature sensors per equipment unit', eGuardSwitches:'Guard switches per equipment unit', eLightBarriers:'Light barriers per equipment unit', eValves:'Safety valves per equipment unit',
+  lBattPerUnit:'Batteries per line', lUpsPerUnit:'UPS units per line',
+  lTempSensors:'Temperature sensors per line', lPneumatic:'Pneumatic sensors per line', lEStop:'Emergency stops per line', lERope:'Emergency ropes per line', lLightBarriers:'Light barriers per line',
+  zoneLines:'Number of production lines'
+};
+
+function ensureAlarmsCatalogLoaded() {
+  if (alarmsCatalog) return Promise.resolve();
+  if (!alarmsCatalogLoadPromise) {
+    alarmsCatalogLoadPromise = Promise.all([
+      fetch('data/alarms-catalog.json').then(r => r.json()),
+      fetch('data/common-alarms.json').then(r => r.json()),
+    ]).then(([catalog, common]) => {
+      alarmsCatalog = catalog;
+      commonAlarmsData = common;
+      ALARM_EQ_CATS = Object.entries(catalog).map(([cat, items]) => ({ cat, items: Object.keys(items).sort() }));
+      renderAlarmsCatalogStatus(null);
+      if (document.getElementById('page-alarms-config')?.classList.contains('active')) renderAlarmsEquipmentList();
+    }).catch(e => {
+      console.error('Failed to load alarms catalog:', e);
+      renderAlarmsCatalogStatus('Could not load the alarm database (data/alarms-catalog.json or data/common-alarms.json). Try refreshing.');
+    }).finally(() => { alarmsCatalogLoadPromise = null; });
+  }
+  return alarmsCatalogLoadPromise;
+}
+function renderAlarmsCatalogStatus(msg) {
+  const el = document.getElementById('alarms-catalog-status');
+  if (!el) return;
+  el.style.display = msg ? 'block' : 'none';
+  el.textContent = msg || '';
+}
+
+// ── Entity alarm resolution — mirrors getAlarmsForEntity() exactly ──────
+function getAlarmRowsFromSheet(sheet) {
+  // Normalize both compact (`rows` + shared fields) and fallback (`rowsFull`) forms
+  // into a flat list of {mainCat,subCat,subSubCat,tag,name,desc,severity,line,num}.
+  if (sheet.rowsFull) {
+    return sheet.rowsFull.map(r => ({
+      name: r[0], desc: r[1], line: r[2], num: r[3],
+      mainCat: r[4], subCat: r[5], subSubCat: r[6], severity: r[7], tag: r[8],
+    }));
+  }
+  return sheet.rows.map(r => ({
+    name: r[0], desc: r[1], line: r[2], num: r[3],
+    mainCat: sheet.mainCat, subCat: sheet.subCat, subSubCat: sheet.subSubCat, severity: sheet.severity, tag: sheet.tag,
+  }));
+}
+function getAlarmsForAlarmEntity(cat, eqName, cfg) {
+  const equip = (alarmsCatalog[cat] && alarmsCatalog[cat][eqName]) || null;
+  if (!equip) return [];
+  const qty = cfg.qty || 0, line = cfg.line || 1, start = cfg.start || 1;
+  const result = [];
+  equip.sheets.forEach(sd => {
+    const allRows = getAlarmRowsFromSheet(sd);
+    let rows;
+    if (sd.numbered) {
+      const hasLines = allRows.some(r => r.line !== null);
+      rows = allRows.filter(r => r.num !== null && (!hasLines || r.line === line) && r.num >= start && r.num < start + qty);
+    } else {
+      rows = qty > 0 ? allRows : [];
+    }
+    if (!rows.length) return;
+    result.push({
+      alarmType: sd.sheetName,
+      category: rows[0].mainCat || 'Uncategorized',
+      alarms: rows.map(r => ({
+        name: r.name, desc: r.desc, value: r.tag, priority: r.severity, deleted: false,
+        category: r.mainCat || 'Uncategorized', subCategory: r.subCat, subSubCategory: r.subSubCat,
+      })),
+    });
+  });
+  return result;
+}
+function getAlarmEquipMeta(cat, eqName) {
+  // Custom equipment borrows its template's sheets/ranges directly.
+  const custom = alarmsState.customEquipment.find(e => e.cat === cat && e.name === eqName);
+  if (custom) return alarmsCatalog[custom.templateCat]?.[custom.templateItem] || null;
+  return (alarmsCatalog[cat] && alarmsCatalog[cat][eqName]) || null;
+}
+function getAlarmsForEntityAny(cat, eqName, cfg) {
+  const custom = alarmsState.customEquipment.find(e => e.cat === cat && e.name === eqName);
+  if (custom) return getAlarmsForAlarmEntity(custom.templateCat, custom.templateItem, cfg);
+  return getAlarmsForAlarmEntity(cat, eqName, cfg);
+}
+
+function getAlarmQtyCfg(key, cat, item) {
+  const equip = getAlarmEquipMeta(cat, item);
+  const defLine = equip && equip.lineRange ? equip.lineRange[0] : 1;
+  const defStart = equip && equip.instanceRange ? equip.instanceRange[0] : 1;
+  const stored = alarmsState.quantities[key];
+  if (stored && typeof stored === 'object') return { qty: stored.qty||0, line: stored.line ?? defLine, start: stored.start ?? defStart };
+  return { qty: 0, line: defLine, start: defStart };
+}
+
+function buildAlarmEntities() {
+  alarmsState.entityAlarms = {};
+  const allCats = ALARM_EQ_CATS.map(c => ({ cat: c.cat, items: [...c.items, ...alarmsState.customEquipment.filter(e=>e.cat===c.cat).map(e=>e.name)] }));
+  allCats.forEach(c => c.items.forEach(item => {
+    const key = c.cat + '|' + item;
+    const cfg = getAlarmQtyCfg(key, c.cat, item);
+    if (cfg.qty <= 0) return;
+    const alarmGroups = getAlarmsForEntityAny(c.cat, item, cfg);
+    if (!alarmGroups.length) return;
+    alarmsState.entityAlarms[key] = { eqName: item, eqCat: c.cat, qty: cfg.qty, line: cfg.line, start: cfg.start, alarmGroups };
+  }));
+}
+
+function changeAlarmQty(key, field, val) {
+  const [cat, item] = key.split('|');
+  const cfg = getAlarmQtyCfg(key, cat, item);
+  const equip = getAlarmEquipMeta(cat, item);
+  let n = parseInt(val);
+  if (isNaN(n)) n = cfg[field];
+  if (field === 'qty') n = Math.max(0, Math.min(99, n));
+  if (field === 'line' && equip?.lineRange) n = Math.max(equip.lineRange[0], Math.min(equip.lineRange[1], n));
+  if (field === 'start' && equip?.instanceRange) n = Math.max(equip.instanceRange[0], Math.min(equip.instanceRange[1], n));
+  cfg[field] = n;
+  alarmsState.quantities[key] = cfg;
+  buildAlarmEntities();
+  if (alarmsState.activeEntity && !alarmsState.entityAlarms[alarmsState.activeEntity]) alarmsState.activeEntity = null;
+  renderAlarmsEquipmentList();
+  renderAlarmsTable(alarmsState.activeEntity);
+  calcAlarmsPage();
+}
+
+// ── Equipment list (left panel) ──────────────────────────────────
+function toggleAlarmsCatAccordion(cat) {
+  if (!alarmsState.collapsedCats) alarmsState.collapsedCats = new Set();
+  if (alarmsState.collapsedCats.has(cat)) alarmsState.collapsedCats.delete(cat); else alarmsState.collapsedCats.add(cat);
+  renderAlarmsEquipmentList();
+}
+function selectAlarmEntity(key) {
+  alarmsState.activeEntity = key;
+  renderAlarmsEquipmentList();
+  renderAlarmsTable(key);
+}
+function alarmsEsc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function alarmsEscAttr(s) { return String(s||'').replace(/'/g,"\\'"); }
+
+function renderAlarmsEquipmentList() {
+  const cont = document.getElementById('alarms-equipment-list');
+  if (!cont) return;
+  if (!ALARM_EQ_CATS.length) { cont.innerHTML = '<div class="dim" style="font-size:12px;padding:8px 0">Loading alarm database…</div>'; return; }
+  if (!alarmsState.collapsedCats) {
+    alarmsState.collapsedCats = new Set();
+    ALARM_EQ_CATS.forEach(c => { if (!c.items.some(n => alarmsState.entityAlarms[c.cat+'|'+n])) alarmsState.collapsedCats.add(c.cat); });
+  }
+  const search = (document.getElementById('al-eq-search')?.value || '').toLowerCase();
+  const allCats = ALARM_EQ_CATS.map(c => ({ cat: c.cat, items: [...c.items, ...alarmsState.customEquipment.filter(e=>e.cat===c.cat).map(e=>e.name)] }));
+
+  cont.innerHTML = allCats.map(c => {
+    const items = search ? c.items.filter(n => n.toLowerCase().includes(search)) : c.items;
+    if (!items.length) return '';
+    const configuredCount = c.items.filter(n => alarmsState.entityAlarms[c.cat+'|'+n]).length;
+    const open = search ? true : !alarmsState.collapsedCats.has(c.cat);
+    return `<div style="margin-bottom:8px;border:1px solid var(--b1);border-radius:${`var(--r)`};overflow:hidden">
+      <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;background:var(--s2);font-size:12.5px;font-weight:600" onclick="toggleAlarmsCatAccordion('${alarmsEscAttr(c.cat)}')">
+        <span style="font-size:9px;transition:transform .15s;transform:rotate(${open?'90':'0'}deg);display:inline-block">▶</span>
+        <span style="flex:1">${alarmsEsc(c.cat)}</span>
+        ${configuredCount ? `<span class="badge b-blue">${configuredCount}</span>` : ''}
+      </div>
+      <div style="${open?'':'display:none'}">
+        ${items.map(name => {
+          const key = c.cat + '|' + name;
+          const equip = getAlarmEquipMeta(c.cat, name);
+          const cfg = getAlarmQtyCfg(key, c.cat, name);
+          const entity = alarmsState.entityAlarms[key];
+          const active = alarmsState.activeEntity === key;
+          const showPlacement = equip?.hasLines && cfg.qty > 0;
+          const chip = entity ? (() => {
+            const totalA = entity.alarmGroups.reduce((s,g)=>s+g.alarms.length,0);
+            const activeA = entity.alarmGroups.reduce((s,g)=>s+g.alarms.filter(a=>!a.deleted).length,0);
+            return `<span class="badge ${active?'b-blue':'b-yes'}">${activeA}/${totalA}</span>`;
+          })() : '';
+          return `<div style="padding:8px 12px;border-top:1px solid var(--b1)${active?';background:var(--copper-bg)':''}">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="flex:1;font-size:12.5px;cursor:${entity?'pointer':'default'};font-weight:${active?'700':'400'}" title="${alarmsEsc(name)}" ${entity?`onclick="selectAlarmEntity('${alarmsEscAttr(key)}')"`:''}>${alarmsEsc(name)}</span>
+              <button class="btn btn-ghost" style="padding:1px 7px;font-size:12px" onclick="changeAlarmQty('${alarmsEscAttr(key)}','qty',${cfg.qty-1})">−</button>
+              <input type="number" class="en" style="width:34px;text-align:center" min="0" max="99" value="${cfg.qty}" onchange="changeAlarmQty('${alarmsEscAttr(key)}','qty',this.value)">
+              <button class="btn btn-ghost" style="padding:1px 7px;font-size:12px" onclick="changeAlarmQty('${alarmsEscAttr(key)}','qty',${cfg.qty+1})">+</button>
+              ${chip}
+            </div>
+            ${showPlacement ? `<div style="display:flex;gap:10px;margin-top:6px;font-size:11px;color:var(--t3)">
+              <span>Line <input type="number" class="en" style="width:32px" min="${equip.lineRange[0]}" max="${equip.lineRange[1]}" value="${cfg.line}" onchange="changeAlarmQty('${alarmsEscAttr(key)}','line',this.value)"></span>
+              <span>Start <input type="number" class="en" style="width:32px" min="${equip.instanceRange[0]}" max="${equip.instanceRange[1]}" value="${cfg.start}" onchange="changeAlarmQty('${alarmsEscAttr(key)}','start',this.value)"></span>
+            </div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('') || '<div class="dim" style="font-size:12px;padding:8px 0">No equipment matches your search.</div>';
+}
+
+// ── Alarm table (right panel) ────────────────────────────────────
+function renderAlarmsTable(entityKey) {
+  const header = document.getElementById('alarms-table-header');
+  const cont = document.getElementById('alarms-table-container');
+  if (!header || !cont) return;
+  const entity = alarmsState.entityAlarms[entityKey];
+  if (!entity) {
+    header.innerHTML = '<div class="card-head">Alarms</div>';
+    cont.innerHTML = '<div class="dim" style="text-align:center;padding:40px 0">👈 Select an equipment type with a quantity set to view its alarms</div>';
+    return;
+  }
+  let totalAll=0, totalActive=0;
+  entity.alarmGroups.forEach(g => g.alarms.forEach(a => { totalAll++; if (!a.deleted) totalActive++; }));
+  const lineInfo = (entity.line!=null && getAlarmEquipMeta(entity.eqCat, entity.eqName)?.hasLines) ? ` — Line ${entity.line}, Start ${entity.start}` : '';
+
+  header.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+    <div>
+      <div style="font-size:15px;font-weight:700">${alarmsEsc(entity.eqName)} — Qty ${entity.qty}${lineInfo}</div>
+      <div style="font-size:12px;color:var(--t3)">${totalActive.toLocaleString()} / ${totalAll.toLocaleString()} alarms active</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input type="text" class="en" style="width:160px;text-align:left" placeholder="Search alarms…" value="${alarmsEsc(alarmsState.alarmSearch)}" oninput="alarmsState.alarmSearch=this.value;renderAlarmsTable(alarmsState.activeEntity)">
+      <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="bulkAlarmToggle('${alarmsEscAttr(entityKey)}',false)">Enable All</button>
+      <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="bulkAlarmToggle('${alarmsEscAttr(entityKey)}',true)">Disable All</button>
+      <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="alarmsState.showDeleted=!alarmsState.showDeleted;renderAlarmsTable(alarmsState.activeEntity)">${alarmsState.showDeleted?'Hide':'Show'} Disabled</button>
+    </div>
+  </div>`;
+
+  if (!entity.alarmGroups.length) { cont.innerHTML = '<div class="dim" style="text-align:center;padding:30px 0">⚠ No alarms found for this equipment/quantity</div>'; return; }
+
+  const search = (alarmsState.alarmSearch||'').toLowerCase();
+  let html = '<div class="tbl-wrap"><table><thead><tr><th>Alarm Name</th><th>Description</th><th>Alarm Type</th><th>Category</th><th>Value</th><th>Pri</th><th></th></tr></thead><tbody>';
+  let anyRows = false;
+  entity.alarmGroups.forEach((g, gi) => {
+    const visible = g.alarms.filter(a => {
+      if (!alarmsState.showDeleted && a.deleted) return false;
+      if (search && !a.name.toLowerCase().includes(search) && !a.desc.toLowerCase().includes(search)) return false;
+      return true;
+    });
+    visible.forEach(a => {
+      anyRows = true;
+      const realIdx = g.alarms.indexOf(a);
+      html += `<tr style="${a.deleted?'opacity:.45':''}">
+        <td style="white-space:nowrap;font-family:var(--f-mono);font-size:11px">${alarmsEsc(a.name)}</td>
+        <td style="max-width:340px">${alarmsEsc(a.desc)}</td>
+        <td class="dim" title="${alarmsEsc(g.alarmType)}">${alarmsEsc(g.alarmType.length>26?g.alarmType.slice(0,26)+'…':g.alarmType)}</td>
+        <td><span class="badge b-blue">${alarmsEsc((g.category||'').replace(' Failures',''))}</span></td>
+        <td class="dim" style="font-family:var(--f-mono);font-size:11px">${alarmsEsc(a.value)||'—'}</td>
+        <td class="dim">${a.priority ?? '—'}</td>
+        <td><button class="btn btn-ghost" style="padding:2px 8px;font-size:11px" onclick="toggleAlarmEntry('${alarmsEscAttr(entityKey)}',${gi},${realIdx})" title="${a.deleted?'Enable':'Disable'}">${a.deleted?'↺':'✕'}</button></td>
+      </tr>`;
+    });
+  });
+  html += '</tbody></table></div>';
+  cont.innerHTML = anyRows ? html : '<div class="dim" style="text-align:center;padding:30px 0">No alarms match your filters</div>';
+}
+function toggleAlarmEntry(entityKey, groupIdx, alarmIdx) {
+  const entity = alarmsState.entityAlarms[entityKey];
+  if (!entity?.alarmGroups[groupIdx]) return;
+  entity.alarmGroups[groupIdx].alarms[alarmIdx].deleted = !entity.alarmGroups[groupIdx].alarms[alarmIdx].deleted;
+  renderAlarmsTable(entityKey);
+  renderAlarmsEquipmentList();
+  calcAlarmsPage();
+}
+function bulkAlarmToggle(entityKey, deleted) {
+  const entity = alarmsState.entityAlarms[entityKey];
+  if (!entity) return;
+  entity.alarmGroups.forEach(g => g.alarms.forEach(a => a.deleted = deleted));
+  renderAlarmsTable(entityKey);
+  renderAlarmsEquipmentList();
+  calcAlarmsPage();
+}
+
+// ── Custom Equipment ──────────────────────────────────────────────
+function addCustomAlarmEquipment(name, cat, templateCat, templateItem) {
+  if (!name || !cat || !templateCat || !templateItem) return;
+  alarmsState.customEquipment.push({ name, cat, templateCat, templateItem });
+  renderAlarmsEquipmentList();
+}
+function removeCustomAlarmEquipment(idx) {
+  const eq = alarmsState.customEquipment[idx];
+  if (!eq) return;
+  delete alarmsState.entityAlarms[eq.cat+'|'+eq.name];
+  delete alarmsState.quantities[eq.cat+'|'+eq.name];
+  alarmsState.customEquipment.splice(idx, 1);
+  buildAlarmEntities();
+  renderAlarmsEquipmentList();
+  renderCommonAndCustomPage();
+  calcAlarmsPage();
+}
+function populateCustomEqTemplateSelect() {
+  const sel = document.getElementById('al-custom-eq-template');
+  if (!sel || !ALARM_EQ_CATS.length) return;
+  sel.innerHTML = ALARM_EQ_CATS.map(c => `<optgroup label="${alarmsEsc(c.cat)}">${c.items.map(n=>`<option value="${alarmsEsc(c.cat)}|${alarmsEsc(n)}">${alarmsEsc(n)}</option>`).join('')}</optgroup>`).join('');
+}
+function submitCustomAlarmEquipment() {
+  const nameEl = document.getElementById('al-custom-eq-name');
+  const name = (nameEl.value || '').trim();
+  const cat = document.getElementById('al-custom-eq-cat').value;
+  const templateVal = document.getElementById('al-custom-eq-template').value;
+  if (!name) { alert('Give the new equipment a name.'); return; }
+  const allNames = [...ALARM_EQ_CATS.flatMap(c=>c.items), ...alarmsState.customEquipment.map(e=>e.name)];
+  if (allNames.some(n => n.toLowerCase() === name.toLowerCase())) { alert('Equipment with this name already exists.'); return; }
+  const [templateCat, templateItem] = templateVal.split('|');
+  addCustomAlarmEquipment(name, cat, templateCat, templateItem);
+  nameEl.value = '';
+  renderCommonAndCustomPage();
+}
+
+// ── Common Alarms Wizard ─────────────────────────────────────────
+function renderAlarmsWizardFields() {
+  const cont = document.getElementById('alarms-wizard-fields');
+  if (!cont) return;
+  if (!alarmsState.wizardVals) alarmsState.wizardVals = { ...ALARM_WIZARD_DEFAULTS };
+  const v = alarmsState.wizardVals;
+  cont.innerHTML = `<div class="g3">` + Object.keys(ALARM_WIZARD_DEFAULTS).map(k => `
+    <div class="fg"><label class="fl">${ALARM_WIZARD_LABELS[k]}</label>
+      <input type="number" class="en" style="width:100%;text-align:left" min="0" max="${ALARM_WIZARD_MAX[k]}" value="${v[k]}" onchange="alarmsState.wizardVals['${k}']=Math.max(0,Math.min(${ALARM_WIZARD_MAX[k]},parseInt(this.value)||0));this.value=alarmsState.wizardVals['${k}']">
+    </div>`).join('') + `</div>`;
+}
+function buildCommonAlarmsList(v) {
+  const alarms = [];
+  if (!commonAlarmsData) return alarms;
+  function take(group, prefix, count) {
+    const src = (commonAlarmsData[group] || []).filter(a => a.tag.startsWith(prefix));
+    return src.slice(0, count).map(a => ({ name: a.tag, desc: a.desc, value: String(a.id||''), priority: a.pri, group, category: a.cat, deleted: false }));
+  }
+  if (v.insightechBatt > 0) alarms.push(...take('Electrical Alarm - Battery Failure', 'INSIGHTECH_BATT', v.insightechBatt));
+  if (v.insightechUps > 0) {
+    const ups = (commonAlarmsData['Electrical Alarm - UPS Fault']||[]).filter(a=>a.tag.startsWith('INSIGHTECH_UPS') && !a.tag.includes('BUFFER'));
+    alarms.push(...ups.slice(0,v.insightechUps).map(a=>({name:a.tag,desc:a.desc,value:String(a.id||''),priority:a.pri,group:'Electrical Alarm - UPS Fault',category:a.cat,deleted:false})));
+  }
+  if (v.insightechUpsBuffer > 0) {
+    const buf = (commonAlarmsData['Electrical Alarm - UPS Fault']||[]).filter(a=>a.tag.includes('UPSBUFFER'));
+    alarms.push(...buf.slice(0,v.insightechUpsBuffer).map(a=>({name:a.tag,desc:a.desc,value:String(a.id||''),priority:a.pri,group:'Electrical Alarm - UPS Fault',category:a.cat,deleted:false})));
+  }
+  for (let r=1; r<=v.robotPanels; r++) {
+    const pad = String(r).padStart(2,'0');
+    alarms.push(...take('Electrical Alarm - Battery Failure', 'ROBOT_'+pad+'_BATT', v.robotBattPerPanel));
+  }
+  Object.entries(alarmsState.entityAlarms).forEach(([ek]) => {
+    if (v.eBattPerUnit > 0) alarms.push(...take('Electrical Alarm - Battery Failure', ek+'_BATT', v.eBattPerUnit));
+    if (v.eUpsPerUnit > 0) {
+      const ups = (commonAlarmsData['Electrical Alarm - UPS Fault']||[]).filter(a=>a.tag.startsWith(ek+'_UPS') && !a.tag.includes('BUFFER'));
+      alarms.push(...ups.slice(0,v.eUpsPerUnit).map(a=>({name:a.tag,desc:a.desc,value:String(a.id||''),priority:a.pri,group:'Electrical Alarm - UPS Fault',category:a.cat,deleted:false})));
+    }
+    if (v.eUpsBufferPerUnit > 0) {
+      const buf = (commonAlarmsData['Electrical Alarm - UPS Fault']||[]).filter(a=>a.tag.startsWith(ek+'_UPSBUFFER'));
+      alarms.push(...buf.slice(0,v.eUpsBufferPerUnit).map(a=>({name:a.tag,desc:a.desc,value:String(a.id||''),priority:a.pri,group:'Electrical Alarm - UPS Fault',category:a.cat,deleted:false})));
+    }
+    if (v.eTempSensors > 0) alarms.push(...take('Operational Alarm - Temperature Sensor Failure', ek+'-TS', v.eTempSensors));
+    if (v.eGuardSwitches > 0) alarms.push(...take('Safety Alarm - Guard Switch', ek+'-GS', v.eGuardSwitches));
+    if (v.eLightBarriers > 0) alarms.push(...take('Safety Alarm - Light Barrier', ek+'-LB', v.eLightBarriers));
+    if (v.eValves > 0) for (let ev=0; ev<v.eValves; ev++) {
+      const evPad = String(ev).padStart(2,'0');
+      alarms.push(...take('Safety Alarm - Safety Valve', 'SAFETY_FEEDBACK_EV'+evPad+'_'+ek, 1));
+    }
+  });
+  const lineCount = Math.max(1, v.zoneLines || 1);
+  for (let l=1; l<=lineCount; l++) {
+    const lk = 'L'+String(l).padStart(2,'0');
+    if (v.lBattPerUnit > 0) alarms.push(...take('Electrical Alarm - Battery Failure', lk+'_BATT', v.lBattPerUnit));
+    if (v.lUpsPerUnit > 0) {
+      const ups = (commonAlarmsData['Electrical Alarm - UPS Fault']||[]).filter(a=>a.tag.startsWith(lk+'_UPS') && !a.tag.includes('BUFFER'));
+      alarms.push(...ups.slice(0,v.lUpsPerUnit).map(a=>({name:a.tag,desc:a.desc,value:String(a.id||''),priority:a.pri,group:'Electrical Alarm - UPS Fault',category:a.cat,deleted:false})));
+    }
+    if (v.lTempSensors > 0) alarms.push(...take('Operational Alarm - Temperature Sensor Failure', lk+'-TS', v.lTempSensors));
+    if (v.lPneumatic > 0) alarms.push(...take('Mechanical Alarm - Pneumatic Error', lk+'-PS', v.lPneumatic));
+    if (v.lEStop > 0) alarms.push(...take('Safety Alarm - Emergency Stop Activated', lk+'-ES', v.lEStop));
+    if (v.lERope > 0) alarms.push(...take('Safety Alarm - Emergency Rope', lk+'-ER', v.lERope));
+    if (v.lLightBarriers > 0) alarms.push(...take('Safety Alarm - Light Barrier', lk+'-LB', v.lLightBarriers));
+  }
+  if (v.zoneLines > 0) {
+    const zones = commonAlarmsData['Communication Alarm - Zone Feedback']||[];
+    alarms.push(...zones.slice(0,v.zoneLines).map(a=>({name:a.tag,desc:a.desc,value:String(a.id||''),priority:a.pri,group:'Communication Alarm - Zone Feedback',category:a.cat,deleted:false})));
+  }
+  return alarms;
+}
+function applyCommonAlarmsWizard() {
+  if (!commonAlarmsData) { alert('The alarm database is still loading — try again in a moment.'); return; }
+  const v = alarmsState.wizardVals || ALARM_WIZARD_DEFAULTS;
+  alarmsState.commonAlarms = buildCommonAlarmsList(v);
+  renderCommonAndCustomPage();
+  calcAlarmsPage();
+}
+function toggleCommonAlarm(idx) {
+  const a = alarmsState.commonAlarms[idx];
+  if (a) { a.deleted = !a.deleted; renderCommonAndCustomPage(); calcAlarmsPage(); }
+}
+
+// ── Custom Project Alarms ────────────────────────────────────────
+function addCustomProjectAlarm() {
+  alarmsState.customProjectAlarms.push({ id: Date.now()+Math.random(), name:'', desc:'', group:'Custom Alarms', category:'Custom', value:'', priority:null, deleted:false });
+  renderCommonAndCustomPage();
+}
+function updateCustomProjectAlarm(id, field, value) {
+  const a = alarmsState.customProjectAlarms.find(x => x.id === id);
+  if (a) { a[field] = value; calcAlarmsPage(); }
+}
+function removeCustomProjectAlarm(id) {
+  alarmsState.customProjectAlarms = alarmsState.customProjectAlarms.filter(x => x.id !== id);
+  renderCommonAndCustomPage();
+  calcAlarmsPage();
+}
+
+function renderCommonAndCustomPage() {
+  renderAlarmsWizardFields();
+  populateCustomEqTemplateSelect();
+  const customEqList = document.getElementById('alarms-custom-eq-list');
+  if (customEqList) {
+    customEqList.innerHTML = alarmsState.customEquipment.length
+      ? alarmsState.customEquipment.map((eq, i) => `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--b1)">
+          <div style="flex:1"><div style="font-size:13px;font-weight:600">${alarmsEsc(eq.name)}</div><div style="font-size:11px;color:var(--t3)">${alarmsEsc(eq.cat)} · alarms copied from ${alarmsEsc(eq.templateItem)}</div></div>
+          <button class="btn btn-ghost" style="padding:3px 9px;font-size:11px" onclick="removeCustomAlarmEquipment(${i})">✕ Remove</button>
+        </div>`).join('')
+      : '<div class="dim" style="font-size:12px">No custom equipment added yet.</div>';
+  }
+  const commonBody = document.getElementById('alarms-common-body');
+  const commonSummary = document.getElementById('alarms-common-summary');
+  if (commonBody) {
+    const active = alarmsState.commonAlarms.filter(a=>!a.deleted).length;
+    if (commonSummary) commonSummary.textContent = alarmsState.commonAlarms.length
+      ? `${active.toLocaleString()} / ${alarmsState.commonAlarms.length.toLocaleString()} common alarms active.`
+      : 'No common alarms generated yet.';
+    commonBody.innerHTML = alarmsState.commonAlarms.map((a, i) => `<tr style="${a.deleted?'opacity:.45':''}">
+      <td style="font-family:var(--f-mono);font-size:11px">${alarmsEsc(a.name)}</td>
+      <td style="max-width:360px">${alarmsEsc(a.desc)}</td>
+      <td class="dim">${alarmsEsc((a.category||'').replace(' Failures',''))}</td>
+      <td class="dim">${a.priority ?? '—'}</td>
+      <td><button class="btn btn-ghost" style="padding:2px 8px;font-size:11px" onclick="toggleCommonAlarm(${i})">${a.deleted?'↺':'✕'}</button></td>
+    </tr>`).join('') || `<tr><td colspan="5" class="dim" style="text-align:center;padding:16px">Nothing generated yet.</td></tr>`;
+  }
+  const customBody = document.getElementById('alarms-custom-body');
+  if (customBody) {
+    customBody.innerHTML = alarmsState.customProjectAlarms.map(a => `<tr>
+      <td><input class="ein" placeholder="Alarm name" value="${alarmsEsc(a.name)}" onchange="updateCustomProjectAlarm(${a.id},'name',this.value)"></td>
+      <td><input class="ein" placeholder="Description" value="${alarmsEsc(a.desc)}" onchange="updateCustomProjectAlarm(${a.id},'desc',this.value)"></td>
+      <td><input class="ein" style="width:110px" value="${alarmsEsc(a.group)}" onchange="updateCustomProjectAlarm(${a.id},'group',this.value)"></td>
+      <td><input class="ein" style="width:90px" value="${alarmsEsc(a.category)}" onchange="updateCustomProjectAlarm(${a.id},'category',this.value)"></td>
+      <td><input class="ein" style="width:80px" value="${alarmsEsc(a.value)}" onchange="updateCustomProjectAlarm(${a.id},'value',this.value)"></td>
+      <td><button class="btn btn-ghost" style="padding:2px 8px;font-size:11px" onclick="removeCustomProjectAlarm(${a.id})">✕</button></td>
+    </tr>`).join('') || `<tr><td colspan="6" class="dim" style="text-align:center;padding:16px">No custom alarms yet.</td></tr>`;
+  }
+}
+
+// ── Export — CSV, Siemens SCL, Rockwell — byte-for-byte matching the
+//    source app's real tag-format algorithms. ────────────────────
+function alarmsProjInfo() {
+  const client = document.getElementById('g-name')?.value || '';
+  const projectName = currentProject?.name || '';
+  return {
+    name: projectName, client,
+    ref: document.getElementById('al-project-ref')?.value || '',
+    site: document.getElementById('al-project-site')?.value || '',
+    date: document.getElementById('al-project-date')?.value || '',
+    notes: document.getElementById('al-project-notes')?.value || '',
+    engineer: currentUser?.label || currentUser?.name || '',
+    id: currentUser?.name || '',
+  };
+}
+function collectAlarmsExportList() {
+  const out = [];
+  Object.entries(alarmsState.entityAlarms).forEach(([, ev]) => {
+    const line = (ev.line !== undefined && ev.line !== null) ? ev.line : null;
+    (ev.alarmGroups||[]).forEach(g => g.alarms.filter(a=>!a.deleted).forEach(a => out.push({ desc: a.desc||'', priority: a.priority, line })));
+  });
+  (alarmsState.commonAlarms||[]).filter(a=>!a.deleted).forEach(a => out.push({ desc: a.desc||'', priority: a.priority, line: null }));
+  (alarmsState.customProjectAlarms||[]).filter(a=>!a.deleted && a.name).forEach(a => out.push({ desc: a.desc||'', priority: a.priority, line: null }));
+  return out;
+}
+function alarmsDl(filename, content, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+function alarmsSafeName(name) { return (name||'Project').replace(/[^a-z0-9\s]/gi,'').trim().replace(/\s+/g,'_') || 'Project'; }
+function exportAlarmsCsv() {
+  const p = alarmsProjInfo();
+  const pn = alarmsSafeName(p.name);
+  const lines = ['INSIGHTECH ALARMS CONFIGURATOR - ALARM LIST EXPORT', '', 'PROJECT INFORMATION',
+    `Project Name,${p.name}`, `Project Reference,${p.ref}`, `Client,${p.client}`, `Site,${p.site}`,
+    `Engineer,${p.engineer}`, `Engineer ID,${p.id}`, `Date,${p.date}`];
+  if (p.notes) lines.push(`Notes,${p.notes}`);
+  lines.push('', 'ALARM LIST');
+  let csv = lines.join('\n') + '\n' + 'Entity,Equipment,Alarm Type,Alarm Name,Description,Category,Value,Priority\n';
+  Object.entries(alarmsState.entityAlarms).forEach(([ek, ev]) => {
+    (ev.alarmGroups||[]).forEach(g => g.alarms.filter(a=>!a.deleted).forEach(a => {
+      csv += `"${ek}","${ev.eqName}","${g.alarmType}","${a.name}","${a.desc}","${g.category}","${a.value}","${a.priority??''}"\n`;
+    }));
+  });
+  (alarmsState.commonAlarms||[]).filter(a=>!a.deleted).forEach(a => { csv += `"COMMON","Common","${a.group}","${a.name}","${a.desc}","${a.category}","${a.value}","${a.priority??''}"\n`; });
+  (alarmsState.customProjectAlarms||[]).filter(a=>!a.deleted && a.name).forEach(a => { csv += `"CUSTOM","Custom","${a.group}","${a.name}","${a.desc}","${a.category}","${a.value}","${a.priority??''}"\n`; });
+  alarmsDl(pn+' Alarm List.csv', csv, 'text/csv');
+}
+function alarmsSclEscape(str) { return String(str||'').replace(/'/g,"''"); }
+let alarmsPendingExportType = null;
+function openAlarmsPlcExport(type) {
+  alarmsPendingExportType = type;
+  const isSiemens = type === 'siemens';
+  document.getElementById('alarms-plc-export-title').textContent = isSiemens ? '🔷 Siemens Export Options' : '🔶 Rockwell Export Options';
+  document.getElementById('alarms-plc-name-label').textContent = isSiemens ? 'DB / Instance Name' : 'Array Tag Name';
+  document.getElementById('alarms-plc-name-hint').textContent = isSiemens
+    ? 'Used as "<name>"."UN[n]".GlobalData.Configuration.AlarmCfg.Event[n] in every line'
+    : 'Used as <name>[n].ID / .Category / .Message in every line';
+  const nameInput = document.getElementById('alarms-plc-name-input');
+  nameInput.value = isSiemens ? 'FIELD' : 'AlarmCfg_UN01';
+  const extSel = document.getElementById('alarms-plc-ext-select');
+  extSel.innerHTML = `<option value="txt">.txt</option><option value="${isSiemens?'scl':'L5X'}">.${isSiemens?'scl':'L5X'}</option>`;
+  document.getElementById('alarms-plc-export-panel').style.display = 'block';
+  document.getElementById('alarms-plc-export-panel').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function confirmAlarmsPlcExport() {
+  const type = alarmsPendingExportType;
+  const name = (document.getElementById('alarms-plc-name-input').value||'').trim() || (type==='siemens'?'FIELD':'AlarmCfg_UN01');
+  const ext = document.getElementById('alarms-plc-ext-select').value;
+  if (type === 'siemens') runAlarmsSiemensExport(name, ext); else runAlarmsRockwellExport(name, ext);
+}
+function runAlarmsRockwellExport(arrayName, ext) {
+  const p = alarmsProjInfo(); const pn = alarmsSafeName(p.name);
+  const alarms = collectAlarmsExportList(); const CRLF = '\r\n';
+  const idLines=[], catLines=[], msgLines=[];
+  alarms.forEach((a,i) => {
+    const idx = i+1;
+    idLines.push(`\t${arrayName}[${idx}].ID :=  ${idx} ;`);
+    catLines.push(`\t${arrayName}[${idx}].Category := ${parseInt(a.priority)||0} ;`);
+    msgLines.push(`\t${arrayName}[${idx}].Message := '${alarmsSclEscape(a.desc)}' ;`);
+  });
+  const out = [`#region (AlarmCfg ID)`,'',...idLines,'',`#endregion`,`#region(AlarmCfg Categories)`,'',...catLines,'',`#endregion`,`#region(AlarmCfg Message)`,'',...msgLines,'',`#endregion`].join(CRLF);
+  alarmsDl(`${pn} Alarm List Rockwell.${ext}`, out, 'text/plain');
+}
+function runAlarmsSiemensExport(dbName, ext) {
+  const p = alarmsProjInfo(); const pn = alarmsSafeName(p.name);
+  const alarms = collectAlarmsExportList(); const CRLF = '\r\n';
+  const lineNums = [...new Set(alarms.filter(a=>a.line!==null).map(a=>a.line))].sort((x,y)=>x-y);
+  const extraUnit = (lineNums.length ? Math.max(...lineNums) : 0) + 1;
+  const units = {}; lineNums.forEach(l=>units[l]=[]); units[extraUnit] = [];
+  alarms.forEach(a => units[a.line!==null?a.line:extraUnit].push(a));
+  const unitNums = Object.keys(units).map(Number).sort((x,y)=>x-y).filter(u=>units[u].length);
+  const tagPrefix = (u,n) => `"${dbName}"."UN[${u}]".GlobalData.Configuration.AlarmCfg.Event[${n}]`;
+  const idBlocks=[], msgBlocks=[], catBlocks=[];
+  unitNums.forEach(u => {
+    const list = units[u]; const idLines=[], msgLines=[], catLines=[];
+    list.forEach((a,i) => {
+      const n = i+1;
+      idLines.push(`${tagPrefix(u,n)}.ID := ${n};`);
+      msgLines.push(`${tagPrefix(u,n)}.message[0] := '${alarmsSclEscape(a.desc)}';`);
+      catLines.push(`${tagPrefix(u,n)}.category := ${parseInt(a.priority)||0};`);
+    });
+    idBlocks.push(idLines.join(CRLF)); msgBlocks.push(msgLines.join(CRLF)); catBlocks.push(catLines.join(CRLF));
+  });
+  const out = idBlocks.join(CRLF+CRLF)+CRLF+CRLF + msgBlocks.join(CRLF+CRLF)+CRLF+CRLF+CRLF + catBlocks.join(CRLF+CRLF)+CRLF;
+  alarmsDl(`${pn} Alarm List Siemens.${ext}`, out, 'text/plain');
+}
+
+// ── Page-level calc / render orchestration ───────────────────────
+function calcAlarmsPage() {
+  const totalEntities = Object.keys(alarmsState.entityAlarms).length;
+  const eqAlarms = Object.values(alarmsState.entityAlarms).reduce((s,e)=>s+(e.alarmGroups||[]).reduce((ss,g)=>ss+g.alarms.filter(a=>!a.deleted).length,0),0);
+  const commonActive = (alarmsState.commonAlarms||[]).filter(a=>!a.deleted).length;
+  const customActive = (alarmsState.customProjectAlarms||[]).filter(a=>!a.deleted && a.name).length;
+
+  sv2('al-stat-engineer', currentUser?.label || currentUser?.name || '—');
+  sv2('al-stat-entities', String(totalEntities));
+  sv2('al-stat-alarms', (eqAlarms+commonActive+customActive).toLocaleString());
+  sv2('al-exp-eqtypes', String(totalEntities));
+  sv2('al-exp-eqalarms', eqAlarms.toLocaleString());
+  sv2('al-exp-common', commonActive.toLocaleString());
+  sv2('al-exp-custom', customActive.toLocaleString());
+}
+function sv2(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+
+function initAlarmsPageIfNeeded() {
+  if (!alarmsCatalog) { ensureAlarmsCatalogLoaded().then(() => { renderAlarmsEquipmentList(); renderAlarmsTable(alarmsState.activeEntity); renderCommonAndCustomPage(); calcAlarmsPage(); }); return; }
+  renderAlarmsEquipmentList();
+  renderAlarmsTable(alarmsState.activeEntity);
+  renderCommonAndCustomPage();
+  calcAlarmsPage();
+}
+
+// ── Project snapshot integration (unified save/restore) ──────────
+function buildAlarmsSnapshot() {
+  return {
+    info: {
+      ref: document.getElementById('al-project-ref')?.value || '',
+      site: document.getElementById('al-project-site')?.value || '',
+      date: document.getElementById('al-project-date')?.value || '',
+      notes: document.getElementById('al-project-notes')?.value || '',
+    },
+    quantities: JSON.parse(JSON.stringify(alarmsState.quantities)),
+    entityAlarms: JSON.parse(JSON.stringify(alarmsState.entityAlarms)),
+    commonAlarms: JSON.parse(JSON.stringify(alarmsState.commonAlarms)),
+    customEquipment: JSON.parse(JSON.stringify(alarmsState.customEquipment)),
+    customProjectAlarms: JSON.parse(JSON.stringify(alarmsState.customProjectAlarms)),
+    wizardVals: alarmsState.wizardVals ? {...alarmsState.wizardVals} : null,
+  };
+}
+function applyAlarmsSnapshot(snap) {
+  alarmsState.quantities = (snap && snap.quantities) ? snap.quantities : {};
+  alarmsState.entityAlarms = (snap && snap.entityAlarms) ? snap.entityAlarms : {};
+  alarmsState.commonAlarms = (snap && snap.commonAlarms) ? snap.commonAlarms : [];
+  alarmsState.customEquipment = (snap && snap.customEquipment) ? snap.customEquipment : [];
+  alarmsState.customProjectAlarms = (snap && snap.customProjectAlarms) ? snap.customProjectAlarms : [];
+  alarmsState.wizardVals = (snap && snap.wizardVals) ? snap.wizardVals : null;
+  alarmsState.activeEntity = null;
+  alarmsState.collapsedCats = null;
+  const info = (snap && snap.info) || {};
+  const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+  setVal('al-project-ref', info.ref);
+  setVal('al-project-site', info.site);
+  setVal('al-project-date', info.date);
+  setVal('al-project-notes', info.notes);
+  if (alarmsCatalog) { renderAlarmsEquipmentList(); renderAlarmsTable(null); renderCommonAndCustomPage(); }
+  calcAlarmsPage();
+}
+function resetAlarmsToBlank() {
+  alarmsState = { info:{ref:'',site:'',date:'',notes:''}, quantities:{}, entityAlarms:{}, commonAlarms:[], customEquipment:[], customProjectAlarms:[], activeEntity:null, collapsedCats:null, showDeleted:false, alarmSearch:'', wizardVals:null };
+  ['al-project-ref','al-project-site','al-project-date','al-project-notes'].forEach(id => { const el=document.getElementById(id); if (el) el.value=''; });
+  if (alarmsCatalog) { renderAlarmsEquipmentList(); renderAlarmsTable(null); renderCommonAndCustomPage(); }
+  calcAlarmsPage();
+}
+
+document.querySelectorAll('.nav-item[data-p^="alarms-"]').forEach(item => {
+  item.addEventListener('click', () => { if (item.dataset.p === 'alarms-config' || item.dataset.p === 'alarms-common') initAlarmsPageIfNeeded(); else calcAlarmsPage(); });
+});
 </script>
 </body>
 </html>
