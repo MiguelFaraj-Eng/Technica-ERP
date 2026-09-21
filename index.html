@@ -360,20 +360,20 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
     <div class="nav-item" data-p="strategic"><span class="nav-dot"></span>Strategic</div>
     <div class="nav-item" data-p="customer-req"><span class="nav-dot"></span>Customer Requirements</div>
     <div class="nav-item" data-p="technical-data"><span class="nav-dot"></span>Technical Data</div>
+    <div class="nav-item" data-p="production"><span class="nav-dot"></span>Production Data</div>
     <div class="nav-group" onclick="toggleNavGroup(this)">Electrical Cabinet<span class="nav-group-arrow">▾</span></div>
     <div class="nav-item" data-p="cabinet-config"><span class="nav-dot"></span>Configurator</div>
     <div class="nav-item" data-p="cabinet-bom"><span class="nav-dot"></span>Bill of Materials</div>
     <div class="nav-item" data-p="cabinet-material-pr"><span class="nav-dot"></span>Material for PR</div>
+    <div class="nav-group" onclick="toggleNavGroup(this)">Digital Configuration<span class="nav-group-arrow">▾</span></div>
+    <div class="nav-item" data-p="general"><span class="nav-dot"></span>General Info</div>
+    <div class="nav-item" data-p="equipment"><span class="nav-dot"></span>Technica Equipment</div>
+    <div class="nav-item" data-p="supplier"><span class="nav-dot"></span>Supplier Equipment</div>
     <div class="nav-group" onclick="toggleNavGroup(this)">SMART Factory<span class="nav-group-arrow">▾</span></div>
     <div class="nav-item" data-p="licenses"><span class="nav-dot"></span>Smart Factory License</div>
     <div class="nav-item" data-p="hardware"><span class="nav-dot"></span>Hardware</div>
     <div class="nav-item" data-p="mandays"><span class="nav-dot"></span>Mandays</div>
     <div class="nav-item" data-p="brief"><span class="nav-dot"></span>Budget Brief</div>
-    <div class="nav-group" onclick="toggleNavGroup(this)">SCADA Configuration<span class="nav-group-arrow">▾</span></div>
-    <div class="nav-item" data-p="general"><span class="nav-dot"></span>General Info</div>
-    <div class="nav-item" data-p="production"><span class="nav-dot"></span>Production Data</div>
-    <div class="nav-item" data-p="equipment"><span class="nav-dot"></span>Technica Equipment</div>
-    <div class="nav-item" data-p="supplier"><span class="nav-dot"></span>Supplier Equipment</div>
     <div class="nav-group" id="nav-group-alarms" onclick="toggleNavGroup(this)" style="display:none">Alarms Configuration<span class="nav-group-arrow">▾</span></div>
     <div class="nav-item" data-p="alarms-config" id="nav-item-alarms-config" style="display:none"><span class="nav-dot"></span>Equipment &amp; Alarms</div>
     <div class="nav-item" data-p="alarms-common" id="nav-item-alarms-common" style="display:none"><span class="nav-dot"></span>Common &amp; Custom</div>
@@ -679,7 +679,7 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
 
 <!-- ═══ GENERAL INFO ═══ -->
 <div id="page-general" class="page">
-  <div class="ph"><div><div class="ph-title">SCADA Configuration</div><div class="ph-sub">Technica questionnaire — technical details for the SCADA system itself</div></div></div>
+  <div class="ph"><div><div class="ph-title">Digital Configuration</div><div class="ph-sub">Technica questionnaire — technical details for the SCADA system itself</div></div></div>
 
   <div class="card">
     <div class="card-head">1. Plants / Rooms / Areas</div>
@@ -824,6 +824,29 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox"> Enable/Disable Production Lines</label>
     </div>
     <div class="fg"><label class="fl">Other Control Functions</label><input type="text" placeholder="Specify..."></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">IIoT</div>
+    <div class="fg" style="max-width:220px"><label class="fl">How Many Panels?</label>
+      <input type="number" id="pd-iiot-panels" min="1" step="1" placeholder="1"
+        oninput="this.value = this.value.replace(/[^0-9]/g,''); if(this.value && parseInt(this.value)<1) this.value='1'; calcIiotPanels()"
+        onchange="if(this.value===''){}else if(parseInt(this.value)<1){this.value='1';} calcIiotPanels()">
+    </div>
+    <div class="tbl-wrap" style="margin-top:14px"><table>
+      <thead><tr><th>Item</th><th>Qty</th><th>Unit Cost</th><th>Margin</th><th>Unit Selling Price</th><th>Total Cost</th><th>Total Selling Price</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>IIoT Panel</td>
+          <td class="n" id="pd-iiot-qty">0</td>
+          <td class="n">$1,100</td>
+          <td class="n">45%</td>
+          <td class="n">$2,000</td>
+          <td class="n" id="pd-iiot-totalcost">$0</td>
+          <td class="n" id="pd-iiot-totalprice">$0</td>
+        </tr>
+      </tbody>
+    </table></div>
   </div>
 </div>
 
@@ -1794,6 +1817,19 @@ function unitPrice(cost, marginPct) {
   return (c > 0 && m < 100) ? c / (1 - m / 100) : 0;
 }
 
+// IIoT panels: selling price and margin are fixed business terms (not
+// user-editable here) — cost is derived from them: cost = price * (1 - margin/100).
+const IIOT_UNIT_PRICE = 2000;
+const IIOT_MARGIN_PCT = 45;
+const IIOT_UNIT_COST = IIOT_UNIT_PRICE * (1 - IIOT_MARGIN_PCT / 100); // = 1100
+function calcIiotPanels() {
+  const el = document.getElementById('pd-iiot-panels');
+  const qty = Math.max(0, parseInt(el.value) || 0);
+  sv('pd-iiot-qty', String(qty));
+  sv('pd-iiot-totalcost', fmt(qty * IIOT_UNIT_COST));
+  sv('pd-iiot-totalprice', fmt(qty * IIOT_UNIT_PRICE));
+}
+
 // word → integer (Excel's text-based number system)
 function matchWord(w) {
   const map = { zero:0, one:1, two:2, three:3, four:4, five:5, unlimited:999 };
@@ -2494,6 +2530,7 @@ function recalcAll() {
 
   renderBreakdown(lic.licTotal, hw.hwTotal, md.engTotal, md.travelTotal);
   if (typeof syncDashboardProjectFields === 'function') syncDashboardProjectFields();
+  if (typeof calcIiotPanels === 'function') calcIiotPanels();
 }
 
 function renderBreakdown(lic, hw, eng, travel) {
