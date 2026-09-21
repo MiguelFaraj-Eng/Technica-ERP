@@ -357,6 +357,9 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
     <div class="nav-item active" data-p="dashboard"><span class="nav-dot"></span>Dashboard</div>
     <div class="nav-group" onclick="toggleNavGroup(this)">Configuration<span class="nav-group-arrow">▾</span></div>
     <div class="nav-item" data-p="client-info"><span class="nav-dot"></span>General Info</div>
+    <div class="nav-item" data-p="strategic"><span class="nav-dot"></span>Strategic</div>
+    <div class="nav-item" data-p="customer-req"><span class="nav-dot"></span>Customer Requirements</div>
+    <div class="nav-item" data-p="technical-data"><span class="nav-dot"></span>Technical Data</div>
     <div class="nav-group" onclick="toggleNavGroup(this)">Electrical Cabinet<span class="nav-group-arrow">▾</span></div>
     <div class="nav-item" data-p="cabinet-config"><span class="nav-dot"></span>Configurator</div>
     <div class="nav-item" data-p="cabinet-bom"><span class="nav-dot"></span>Bill of Materials</div>
@@ -505,8 +508,173 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
       </div>
     </div>
   </div>
+</div>
 
-  <div class="note">More sections will be added here.</div>
+<!-- ═══ CONFIGURATION: STRATEGIC ═══ -->
+<div id="page-strategic" class="page">
+  <div class="ph"><div><div class="ph-title">Strategic</div><div class="ph-sub">Opportunity qualification — gap, buyers, competition, and win strategy</div></div></div>
+
+  <div class="card">
+    <div class="card-head">Project Qualification</div>
+    <div class="g3">
+      <div class="fg"><label class="fl">Category</label><input type="text" id="strat-category" placeholder="e.g. Key customer, Other"></div>
+      <div class="fg"><label class="fl">Sector</label><input type="text" id="strat-sector"></div>
+      <div class="fg"><label class="fl">Contact</label><input type="text" id="strat-contact"></div>
+      <div class="fg"><label class="fl">Prepared By</label><input type="text" id="strat-prepared-by"></div>
+      <div class="fg"><label class="fl">Offer Needed By</label><input type="text" id="strat-offer-needed-by" placeholder="YYYY-MM-DD"></div>
+      <div class="fg"><label class="fl">Decision Time</label><input type="text" id="strat-decision-time" placeholder="e.g. Q3 - 2026"></div>
+      <div class="fg"><label class="fl">Online Platform</label><input type="text" id="strat-online-platform"></div>
+      <div class="fg"><label class="fl">Contributor</label><input type="text" id="strat-contributor"></div>
+      <div class="fg"><label class="fl">Delivery Time</label><input type="text" id="strat-delivery-time"></div>
+      <div class="fg"><label class="fl">Project Source</label><input type="text" id="strat-project-source"></div>
+      <div class="fg"><label class="fl">Project Size</label><input type="text" id="strat-project-size"></div>
+      <div class="fg"><label class="fl">Type Of Offer</label>
+        <select id="strat-type-of-offer"><option value=""></option><option value="Budget">Budget</option><option value="Full">Full</option></select>
+      </div>
+      <div class="fg"><label class="fl">% Project Realization</label>
+        <select id="strat-pct-realization"><option value=""></option><option>Feasibility</option><option>Capex</option><option>Comparison</option><option>Negotiation / Hot project</option></select>
+      </div>
+      <div class="fg"><label class="fl">% Technica Success</label>
+        <select id="strat-pct-success"><option value=""></option><option value="0.25">25%</option><option value="0.5">50%</option><option value="0.75">75%</option></select>
+      </div>
+    </div>
+    <div class="fg" style="margin-top:14px"><label class="fl">Project Description</label><input type="text" id="strat-project-description"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Analysis of the Gap</div>
+    <div class="fg"><label class="fl">What is the purpose/gap to close?</label><textarea id="strat-gap-purpose"></textarea></div>
+    <div class="fg" style="margin-top:12px"><label class="fl">What are the benefits/savings?</label><textarea id="strat-gap-benefits"></textarea></div>
+    <div class="fg" style="margin-top:12px"><label class="fl">What is the estimated investment?</label><textarea id="strat-gap-investment"></textarea></div>
+    <div class="fg" style="margin-top:12px"><label class="fl">What is the payback period?</label><textarea id="strat-gap-payback"></textarea></div>
+    <div class="fg" style="margin-top:12px"><label class="fl">Is the budget available/approved?</label><textarea id="strat-gap-budget"></textarea></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Analysis of the Buyers</div>
+    <div class="note" style="margin-top:0;margin-bottom:14px">Who are the 4 main decision makers, and the role and influence of each?</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Role</th><th>Name</th><th>Position</th><th>Relationship with Us</th><th>Influence</th></tr></thead>
+      <tbody>
+        <tr><td class="dim">The user buyer</td><td><input class="ein" id="strat-buyer-user-name"></td><td><input class="ein" id="strat-buyer-user-position"></td><td><input class="ein" id="strat-buyer-user-relationship"></td><td><input class="ein" id="strat-buyer-user-influence"></td></tr>
+        <tr><td class="dim">The technical buyer</td><td><input class="ein" id="strat-buyer-tech-name"></td><td><input class="ein" id="strat-buyer-tech-position"></td><td><input class="ein" id="strat-buyer-tech-relationship"></td><td><input class="ein" id="strat-buyer-tech-influence"></td></tr>
+        <tr><td class="dim">The economic buyer</td><td><input class="ein" id="strat-buyer-econ-name"></td><td><input class="ein" id="strat-buyer-econ-position"></td><td><input class="ein" id="strat-buyer-econ-relationship"></td><td><input class="ein" id="strat-buyer-econ-influence"></td></tr>
+        <tr><td class="dim">The coach</td><td><input class="ein" id="strat-buyer-coach-name"></td><td><input class="ein" id="strat-buyer-coach-position"></td><td><input class="ein" id="strat-buyer-coach-relationship"></td><td><input class="ein" id="strat-buyer-coach-influence"></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Analysis of the Competition</div>
+    <div class="note" style="margin-top:0;margin-bottom:14px">Who are the main competitors and comparisons?</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Competitor</th><th>Relationship with the Customer</th><th>Price</th><th>Strong Points</th><th>Weak Points</th></tr></thead>
+      <tbody>
+        <tr><td class="dim">Technica</td><td><input class="ein" id="strat-comp-technica-rel"></td><td><input class="ein" id="strat-comp-technica-price"></td><td><input class="ein" id="strat-comp-technica-strong"></td><td><input class="ein" id="strat-comp-technica-weak"></td></tr>
+        <tr><td class="dim">Competitor 1</td><td><input class="ein" id="strat-comp-c1-rel"></td><td><input class="ein" id="strat-comp-c1-price"></td><td><input class="ein" id="strat-comp-c1-strong"></td><td><input class="ein" id="strat-comp-c1-weak"></td></tr>
+        <tr><td class="dim">Competitor 2</td><td><input class="ein" id="strat-comp-c2-rel"></td><td><input class="ein" id="strat-comp-c2-price"></td><td><input class="ein" id="strat-comp-c2-strong"></td><td><input class="ein" id="strat-comp-c2-weak"></td></tr>
+        <tr><td class="dim">Competitor 3</td><td><input class="ein" id="strat-comp-c3-rel"></td><td><input class="ein" id="strat-comp-c3-price"></td><td><input class="ein" id="strat-comp-c3-strong"></td><td><input class="ein" id="strat-comp-c3-weak"></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Sales Strategy</div>
+    <div class="fg"><label class="fl">Action to be done &amp; recommended strategy to offer</label><textarea id="strat-action-plan"></textarea></div>
+    <div class="fg" style="margin-top:12px"><label class="fl">What is our competitive edge &amp; our chances?</label><textarea id="strat-competitive-edge"></textarea></div>
+  </div>
+</div>
+
+<!-- ═══ CONFIGURATION: CUSTOMER REQUIREMENTS ═══ -->
+<div id="page-customer-req" class="page">
+  <div class="ph"><div><div class="ph-title">Customer Requirements</div><div class="ph-sub">Utility, environmental, standards and brand preferences for this project</div></div></div>
+
+  <div class="card">
+    <div class="card-head">Requirements &amp; Scope</div>
+    <div class="fg"><label class="fl">Describe the customer requirements</label><textarea id="cr-requirements" style="min-height:90px"></textarea></div>
+    <div class="fg" style="margin-top:12px"><label class="fl">Describe the solution process</label><textarea id="cr-solution-process"></textarea></div>
+    <div class="fg" style="margin-top:12px"><label class="fl">Define our scope &amp; the limits of our scope</label><textarea id="cr-scope"></textarea></div>
+    <div class="g2" style="margin-top:14px">
+      <div class="fg"><label class="fl">Customer Layout Available</label><select id="cr-layout-available"><option value=""></option><option>yes</option><option>no</option></select></div>
+      <div class="fg"><label class="fl">Pictures Available</label><select id="cr-pictures-available"><option value=""></option><option>yes</option><option>no</option></select></div>
+    </div>
+    <div class="fg" style="margin-top:12px"><label class="fl">Attachments — Others</label><input type="text" id="cr-attachments-other"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Utility Requirements</div>
+    <div class="g3">
+      <div class="fg"><label class="fl">Electrical Voltage (V)</label><input type="text" id="cr-voltage" placeholder="380-420V"></div>
+      <div class="fg"><label class="fl">Frequency (Hz)</label><input type="text" id="cr-frequency" placeholder="50"></div>
+      <div class="fg"><label class="fl">N° of Phases</label><input type="text" id="cr-phases" placeholder="3 phase + Neutral + Ground"></div>
+      <div class="fg"><label class="fl">Compressed Air Pressure (Bars)</label><input type="text" id="cr-air-pressure" placeholder="6"></div>
+      <div class="fg"><label class="fl">Steam Specs Available in Plant</label><select id="cr-steam-specs"><option value=""></option><option>yes</option><option>no</option></select></div>
+      <div class="fg"><label class="fl">Hot Water Specs Available</label><select id="cr-hot-water-specs"><option value=""></option><option>yes</option><option>no</option></select></div>
+      <div class="fg"><label class="fl">Cold Water Specs Available</label><select id="cr-cold-water-specs"><option value=""></option><option>yes</option><option>no</option></select></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Environmental Data</div>
+    <div class="g3">
+      <div class="fg"><label class="fl">Temperature (°C)</label><input type="text" id="cr-temperature" placeholder="Ambient (5°C to 30°C)"></div>
+      <div class="fg"><label class="fl">Humidity (%)</label><input type="text" id="cr-humidity" placeholder="< 70%"></div>
+      <div class="fg"><label class="fl">Altitude (m)</label><input type="text" id="cr-altitude" placeholder="<1000m"></div>
+      <div class="fg"><label class="fl">Environment</label><input type="text" id="cr-environment" placeholder="Clean"></div>
+      <div class="fg"><label class="fl">Cleaning Process</label><input type="text" id="cr-cleaning-process" placeholder="Dry Wiping"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Working Hours</div>
+    <div class="g3">
+      <div class="fg"><label class="fl">Shifts / Day (shift = 8hrs)</label><input type="text" id="cr-shifts-per-day" placeholder="1 shift"></div>
+      <div class="fg"><label class="fl">Days / Week</label><input type="text" id="cr-days-per-week" placeholder="5"></div>
+      <div class="fg"><label class="fl">Weeks / Year</label><input type="text" id="cr-weeks-per-year"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Technical Requirements &amp; Standards</div>
+    <div class="g3">
+      <div class="fg"><label class="fl">Material</label><input type="text" id="cr-material" placeholder="Stainless Steel 304"></div>
+      <div class="fg"><label class="fl">Cable Trays</label><input type="text" id="cr-cable-trays" placeholder="Standard Wire Mesh"></div>
+      <div class="fg"><label class="fl">Safety Standards</label><input type="text" id="cr-safety-standards" placeholder="CE"></div>
+    </div>
+    <div class="fg" style="margin-top:12px"><label class="fl">Others (e.g. panel IP54, IP65…)</label><input type="text" id="cr-others-technical"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Required Components — Brand Preferences</div>
+    <div class="g3">
+      <div class="fg"><label class="fl">Motors</label><input type="text" id="cr-brand-motors" placeholder="SEW"></div>
+      <div class="fg"><label class="fl">Servo Motors</label><input type="text" id="cr-brand-servo" placeholder="SEW"></div>
+      <div class="fg"><label class="fl">Pneumatic</label><input type="text" id="cr-brand-pneumatic" placeholder="Festo"></div>
+      <div class="fg"><label class="fl">Electrical</label><input type="text" id="cr-brand-electrical" placeholder="Siemens"></div>
+      <div class="fg"><label class="fl">Sensors</label><input type="text" id="cr-brand-sensors" placeholder="Sick/Datalogic"></div>
+      <div class="fg"><label class="fl">AC</label><input type="text" id="cr-brand-ac" placeholder="Siefert"></div>
+    </div>
+    <div class="fg" style="margin-top:12px"><label class="fl">Others</label><input type="text" id="cr-brand-others"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Communication with External Systems</div>
+    <div class="g3">
+      <div class="fg"><label class="fl">ERP</label><select id="cr-comm-erp"><option value=""></option><option>yes</option><option>no</option></select></div>
+      <div class="fg"><label class="fl">SAP</label><select id="cr-comm-sap"><option value=""></option><option>yes</option><option>no</option></select></div>
+      <div class="fg"><label class="fl">Line PLC</label><select id="cr-comm-line-plc"><option value=""></option><option>yes</option><option>no</option></select></div>
+    </div>
+    <div class="g2" style="margin-top:12px">
+      <div class="fg"><label class="fl">Communication Type</label><input type="text" id="cr-comm-type" placeholder="Dry contact"></div>
+      <div class="fg"><label class="fl">Others, please define</label><input type="text" id="cr-comm-others"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CONFIGURATION: TECHNICAL DATA ═══ -->
+<div id="page-technical-data" class="page">
+  <div class="ph"><div><div class="ph-title">Technical Data</div><div class="ph-sub">Per-SKU equipment specifications — up to 10 SKUs, matching the DFI technical data sheet</div></div></div>
+  <div id="technical-data-sections"></div>
 </div>
 
 <!-- ═══ GENERAL INFO ═══ -->
@@ -3023,7 +3191,7 @@ function buildProjectSnapshot() {
     alarms: buildAlarmsSnapshot(),
   };
 
-  ['#page-client-info', '#page-general', '#page-production'].forEach(sel => {
+  ['#page-client-info', '#page-strategic', '#page-customer-req', '#page-technical-data', '#page-general', '#page-production'].forEach(sel => {
     document.querySelectorAll(sel + ' [id]').forEach(el => {
       if (!el.matches('input, select, textarea')) return;
       snap.fields[el.id] = el.type === 'checkbox' ? el.checked : el.value;
@@ -3479,7 +3647,7 @@ function returnToProjectsHome() {
 // previous session) and before opening one (so stale fields from the last
 // project don't bleed into fields the new snapshot doesn't happen to set).
 function resetAppToBlank() {
-  document.querySelectorAll('#page-client-info input, #page-client-info select, #page-general input, #page-general select, #page-production input, #page-production select').forEach(el => {
+  document.querySelectorAll('#page-client-info input, #page-client-info select, #page-strategic input, #page-strategic select, #page-strategic textarea, #page-customer-req input, #page-customer-req select, #page-customer-req textarea, #page-technical-data input, #page-general input, #page-general select, #page-production input, #page-production select').forEach(el => {
     if (el.type === 'checkbox') el.checked = false; else if (el.tagName === 'SELECT') el.selectedIndex = 0; else el.value = '';
   });
   ['equip-t-body','equip-s-body'].forEach(id => { const tb = document.getElementById(id); if (tb) tb.innerHTML = ''; });
@@ -6044,6 +6212,60 @@ function resetAlarmsToBlank() {
 document.querySelectorAll('.nav-item[data-p^="alarms-"]').forEach(item => {
   item.addEventListener('click', () => { if (item.dataset.p === 'alarms-config' || item.dataset.p === 'alarms-common') initAlarmsPageIfNeeded(); else calcAlarmsPage(); });
 });
+
+// ── Technical Data (from DFI.xlsm) — 25 sections, 137 fields, 10 SKU columns each.
+// Rendered from a data array rather than hand-authored, given the scale.
+const TECHNICAL_DATA_SECTIONS = 
+[
+{s:'Container Specs',f:['Container Type','Container Material','Container Shape','Production Rate (bph)','Container Weight (kg/L)','Container Length/diameter mm','Container Width/diameter mm','Container Height mm','Container leading edge leaving the debagger, if applicable.']},
+{s:'Multipacks Specs',f:['Container Type','Container Material','Production Rate (bph)','Container Weight (kg/L)','Container Length/diameter mm','Received one at a time or in batches of?']},
+{s:'Package Specs',f:['Package Type','Closure type','Gap between pack and product inside the pack.','Production Rate (cpm)','Overspeed on package %','Weight Full (kg)','Leading edge','Package Length mm','Package Width mm','Package Height mm','Received one at a time or in batches of?']},
+{s:'Pallet Specs',f:['Production Rate (pph)','Overspeed on pallets %','Product Weight (kg)','Pallet Weight Full (kg)','Empty Pallet dimensions (LxWmm)','Empty Pallet height mm','Pallet material','Pallet Type','Pallet Transport Leading side','Pallet Handling','Handlift details','Pallet handling side','Pallet Drawing','Full pallet height (mm)','Received one at a time or in batches of?']},
+{s:'Filler Data',f:['Filler number','Product to be filled','Temperature','Density (kg/l)','Viscosity (Pa.s or cP)','Head Space distance and tolerance.']},
+{s:'Closure data',f:['Material','Type','Neck diameter']},
+{s:'Label Decoration data',f:['Label type','Label dimensions','Feeding type','Glue type','Position','Autosplicing']},
+{s:'Sleeve Decoration data',f:['Sleeve type','Sleeve color','Sleeve dimension','Film type','Position']},
+{s:'Inspection',f:['Acceptance criteria','Dosing system included or not?']},
+{s:'Unpacker Debagger',f:['Layer size and Pattern','Bottles leading edge leaving the debagger, if applicable.']},
+{s:'DePalletizer',f:['Line number','Containers pattern','Containers per  Length','Containers per Width','Number of layers - Height','Interlayer needed','Interlayer  dimensions','Interlayer material']},
+{s:'Palletizer',f:['Line number','Cartons pattern OR','Cartons per  Length','Cartons per Width','Number of layers - Height','Interlayer needed','Interlayer  dimensions','Interlayer material','Pallet overhang','Pattern can be optimized','Carton Orientation needed on pallet','Segregation needed','Preferred technology','Dedicated palletizer for each line','Additional requirements']},
+{s:'Promopack Data',f:['Same as Package Specs']},
+{s:'Packer',f:['Line number','Products per Length','Products per Width','Number of layers - Height','Time required to refill the magazine','Additional requirements']},
+{s:'Case erector',f:['Carton Specs','Tape or Glue Specs','Material','Preferred supplier','Additional requirements']},
+{s:'Case sealer',f:['Carton Specs','Tape or Glue Specs','Material','Preferred supplier','Additional requirements']},
+{s:'Case coder / Labeller',f:['Preferred supplier','Preferred technology','Linear speed','Printing area dim and Nbr of letters and/or characters','Additional requirements']},
+{s:'Inspection',f:['Acceptance criteria','Dosing system included or not?']},
+{s:'Conveyors / Accumulation',f:['Accumulation Time needed','Additional requirements']},
+{s:'Check Weigher',f:['Material','Preferred supplier','Weight to be checked','Variations on weights required','Additional requirements','Acceptance criteria','Dosing system included or not?']},
+{s:'Stretch wrapper',f:['Preferred supplier','Preferred technology','Mounting','Additional requirements']},
+{s:'Pallet labeller',f:['Preferred supplier','Preferred technology','Label dimensions','Linear speed','Position of label on the pallet','Additional requirements']},
+{s:'Pallet lift',f:['Lift stroke','Production rate (pph)']},
+{s:'Transfer Car',f:['number of pallets','Production rate (pph)']},
+{s:'Full Pallet Inspection',f:['number of pallets','Production rate (pph)']}
+];
+function tdFieldId(si, fi, ski) { return `td-${si}-${fi}-${ski}`; }
+function renderTechnicalDataPage() {
+  const cont = document.getElementById('technical-data-sections');
+  if (!cont || cont.dataset.rendered) return;
+  cont.dataset.rendered = '1';
+  const skuHeaders = Array.from({length:10}, (_,i) => `SKU ${i+1}`);
+  cont.innerHTML = TECHNICAL_DATA_SECTIONS.map((sec, si) => `
+    <div class="card">
+      <div class="card-head">${sec.s.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th style="min-width:220px">Field</th>${skuHeaders.map(h=>`<th style="min-width:90px">${h}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${sec.f.map((field, fi) => `<tr>
+            <td class="dim">${field.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</td>
+            ${skuHeaders.map((_, ski) => `<td><input class="ein" id="${tdFieldId(si,fi,ski)}"></td>`).join('')}
+          </tr>`).join('')}
+        </tbody>
+      </table></div>
+    </div>`).join('');
+}
+document.querySelector('.nav-item[data-p="technical-data"]')?.addEventListener('click', renderTechnicalDataPage);
+renderTechnicalDataPage();
+
 </script>
 </body>
 </html>
