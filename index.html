@@ -1454,6 +1454,7 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
 
 </main>
 
+<script src="lib/xlsx.full.min.js"></script>
 <script>
 // ═══════════════════════════════════════════════════════════════
 //  SCADA BUDGETING TOOL — Formula Engine
@@ -5210,13 +5211,95 @@ const ALARM_WIZARD_LABELS = {
   zoneLines:'Number of production lines'
 };
 
+// Hard-coded per-category file lists (the actual filenames under data/Alarms/<Category>/)
+// — equivalent to what the source app discovers dynamically via the GitHub
+// Contents API, but a plain relative fetch() is all a GitHub Pages site needs.
+const ALARM_CATALOG_FILES = {
+  'Equipments': ['Infeeder','Interlayer Magazine','Pallet Magazine','Robot Head','Robot','System'],
+  'General': ['General'],
+  'Motors': ['Asynchronous Motor','MDR, DDR, PGD','Servo Motor'],
+  'Pneumatics': ['Accumulation Table','Ambaflex Spiral Conveyor','Backstop','Carton Holders','Destacker','Devider','Drop-Type Packer','Gate','Guide','Merge','Orientor','Pressing Device','Pusher','Rotating Device','Sliding Plate','Squaring System','Squezer','Transfer Unit'],
+  'Sensors': ['Inductive Proximity','Magnetic Cylinder','Photocell','Ultrasonic Sensor','Vaccum Sensor'],
+  'Supplier Machines': ['AGV','Barcode','CHP Machine','Case Erector','Case Packer','Case Sealer','Check Weigher','Dryer Machine','Filler Seamer','Pallet Labeler','Printer','QIMAROX Lift','Strech Wrapper','Vacuum Machine','Washer','Xray Machine'],
+};
+
+// Extract every 2-digit run from a label, e.g. "L01-CL02-M01" -> [1, 2, 1]
+function allAlarmInstanceNums(label) {
+  const matches = String(label||'').match(/\d{2}/g);
+  return matches ? matches.map(n => parseInt(n,10)) : [];
+}
+// Tags with exactly one embedded number use it directly as the physical-
+// instance count. Tags with two+ embedded numbers are a <line>-<unit> grid —
+// the FIRST number is the line, the SECOND is the per-quantity instance.
+function annotateAlarmNumberedRows(rows) {
+  const numLists = rows.map(r => allAlarmInstanceNums(r.name));
+  const maxLen = numLists.reduce((m,l) => Math.max(m,l.length), 0);
+  if (maxLen === 0) return rows.map(r => ({...r, line:null, num:null}));
+  if (maxLen === 1) return rows.map((r,i) => ({...r, line:null, num: numLists[i][0] ?? null}));
+  return rows.map((r,i) => ({...r, line: numLists[i][0] ?? null, num: numLists[i][1] ?? null}));
+}
+async function fetchOneAlarmEquipmentFile(cat, eqName) {
+  try {
+    const res = await fetch(`data/Alarms/${encodeURIComponent(cat)}/${encodeURIComponent(eqName)}.xlsx`);
+    if (!res.ok) return null;
+    const buf = await res.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    const sheetDefs = [];
+    let lineMin=null, lineMax=null, instMin=null, instMax=null;
+    wb.SheetNames.forEach(sheetName => {
+      const ws = wb.Sheets[sheetName];
+      const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      const parsed = raw.slice(1).map(r => ({
+        mainCat: String(r[0]||'').trim(), subCat: String(r[1]||'').trim(), subSubCat: String(r[2]||'').trim(),
+        tag: String(r[3]||'').trim(), name: String(r[4]||'').trim(), desc: String(r[5]||'').trim(), severity: String(r[6]||'').trim(),
+      })).filter(r => r.name || r.desc);
+      if (!parsed.length) return;
+      const rows = annotateAlarmNumberedRows(parsed);
+      const numbered = rows.length > 1 && rows.every(r => r.num !== null);
+      sheetDefs.push({ sheetName, numbered, rows });
+      if (numbered) rows.forEach(r => {
+        if (r.line !== null) { lineMin = lineMin===null?r.line:Math.min(lineMin,r.line); lineMax = lineMax===null?r.line:Math.max(lineMax,r.line); }
+        instMin = instMin===null?r.num:Math.min(instMin,r.num); instMax = instMax===null?r.num:Math.max(instMax,r.num);
+      });
+    });
+    if (!sheetDefs.length) return null;
+    return { sheets: sheetDefs, hasLines: lineMin!==null, lineRange: lineMin!==null?[lineMin,lineMax]:null, instanceRange: instMin!==null?[instMin,instMax]:null };
+  } catch (e) { console.warn('Error loading alarm file', cat, eqName, e); return null; }
+}
+async function fetchAlarmCommonSheet() {
+  try {
+    const res = await fetch('data/alarms_template.xlsx');
+    if (!res.ok) return {};
+    const buf = await res.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    const ws = wb.Sheets['Common'];
+    if (!ws) return {};
+    const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    const groups = {};
+    let currentGroup = null;
+    raw.forEach(r => {
+      const [tag, desc, cat, id, pri] = r;
+      if (tag && !desc) { currentGroup = String(tag).trim(); if (!groups[currentGroup]) groups[currentGroup] = []; return; }
+      if (currentGroup && tag) groups[currentGroup].push({ tag: String(tag).trim(), desc: String(desc||'').trim(), cat: String(cat||'').trim(), id, pri });
+    });
+    return groups;
+  } catch (e) { console.warn('Error loading Common sheet', e); return {}; }
+}
 function ensureAlarmsCatalogLoaded() {
   if (alarmsCatalog) return Promise.resolve();
   if (!alarmsCatalogLoadPromise) {
+    renderAlarmsCatalogStatus('Loading the alarm database (49 equipment files)…');
     alarmsCatalogLoadPromise = Promise.all([
-      fetch('data/alarms-catalog.json').then(r => r.json()),
-      fetch('data/common-alarms.json').then(r => r.json()),
-    ]).then(([catalog, common]) => {
+      Promise.all(Object.entries(ALARM_CATALOG_FILES).map(async ([cat, files]) => {
+        const results = await Promise.all(files.map(async name => ({ name, data: await fetchOneAlarmEquipmentFile(cat, name) })));
+        const equipMap = {};
+        results.forEach(r => { if (r.data) equipMap[r.name] = r.data; });
+        return { cat, equipMap };
+      })),
+      fetchAlarmCommonSheet(),
+    ]).then(([catResults, common]) => {
+      const catalog = {};
+      catResults.forEach(({cat, equipMap}) => { if (Object.keys(equipMap).length) catalog[cat] = equipMap; });
       alarmsCatalog = catalog;
       commonAlarmsData = common;
       ALARM_EQ_CATS = Object.entries(catalog).map(([cat, items]) => ({ cat, items: Object.keys(items).sort() }));
@@ -5224,7 +5307,7 @@ function ensureAlarmsCatalogLoaded() {
       if (document.getElementById('page-alarms-config')?.classList.contains('active')) renderAlarmsEquipmentList();
     }).catch(e => {
       console.error('Failed to load alarms catalog:', e);
-      renderAlarmsCatalogStatus('Could not load the alarm database (data/alarms-catalog.json or data/common-alarms.json). Try refreshing.');
+      renderAlarmsCatalogStatus('Could not load the alarm database from data/Alarms/. Try refreshing.');
     }).finally(() => { alarmsCatalogLoadPromise = null; });
   }
   return alarmsCatalogLoadPromise;
@@ -5236,34 +5319,21 @@ function renderAlarmsCatalogStatus(msg) {
   el.textContent = msg || '';
 }
 
-// ── Entity alarm resolution — mirrors getAlarmsForEntity() exactly ──────
-function getAlarmRowsFromSheet(sheet) {
-  // Normalize both compact (`rows` + shared fields) and fallback (`rowsFull`) forms
-  // into a flat list of {mainCat,subCat,subSubCat,tag,name,desc,severity,line,num}.
-  if (sheet.rowsFull) {
-    return sheet.rowsFull.map(r => ({
-      name: r[0], desc: r[1], line: r[2], num: r[3],
-      mainCat: r[4], subCat: r[5], subSubCat: r[6], severity: r[7], tag: r[8],
-    }));
-  }
-  return sheet.rows.map(r => ({
-    name: r[0], desc: r[1], line: r[2], num: r[3],
-    mainCat: sheet.mainCat, subCat: sheet.subCat, subSubCat: sheet.subSubCat, severity: sheet.severity, tag: sheet.tag,
-  }));
-}
+// ── Entity alarm resolution — mirrors the source app's getAlarmsForEntity()
+//    directly; the runtime-parsed catalog already stores rows as per-row
+//    objects, so no normalization layer is needed. ──────────────────────
 function getAlarmsForAlarmEntity(cat, eqName, cfg) {
   const equip = (alarmsCatalog[cat] && alarmsCatalog[cat][eqName]) || null;
   if (!equip) return [];
   const qty = cfg.qty || 0, line = cfg.line || 1, start = cfg.start || 1;
   const result = [];
   equip.sheets.forEach(sd => {
-    const allRows = getAlarmRowsFromSheet(sd);
     let rows;
     if (sd.numbered) {
-      const hasLines = allRows.some(r => r.line !== null);
-      rows = allRows.filter(r => r.num !== null && (!hasLines || r.line === line) && r.num >= start && r.num < start + qty);
+      const hasLines = sd.rows.some(r => r.line !== null);
+      rows = sd.rows.filter(r => r.num !== null && (!hasLines || r.line === line) && r.num >= start && r.num < start + qty);
     } else {
-      rows = qty > 0 ? allRows : [];
+      rows = qty > 0 ? sd.rows : [];
     }
     if (!rows.length) return;
     result.push({
