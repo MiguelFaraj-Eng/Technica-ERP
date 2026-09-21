@@ -370,7 +370,6 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
     <div class="nav-item" data-p="cabinet-bom"><span class="nav-dot"></span>Bill of Materials</div>
     <div class="nav-item" data-p="cabinet-material-pr"><span class="nav-dot"></span>Material for PR</div>
     <div class="nav-group" id="nav-group-alarms" onclick="toggleNavGroup(this)" style="display:none">Alarms Configuration<span class="nav-group-arrow">▾</span></div>
-    <div class="nav-item" data-p="alarms-info" id="nav-item-alarms-info" style="display:none"><span class="nav-dot"></span>Project Info</div>
     <div class="nav-item" data-p="alarms-config" id="nav-item-alarms-config" style="display:none"><span class="nav-dot"></span>Equipment &amp; Alarms</div>
     <div class="nav-item" data-p="alarms-common" id="nav-item-alarms-common" style="display:none"><span class="nav-dot"></span>Common &amp; Custom</div>
     <div class="nav-item" data-p="alarms-export" id="nav-item-alarms-export" style="display:none"><span class="nav-dot"></span>Export</div>
@@ -408,6 +407,26 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
     <div><div class="ph-title">Budget Dashboard</div><div class="ph-sub">All values update live as you edit</div></div>
     <div style="display:flex;align-items:center;gap:8px">
       <button class="btn btn-primary" onclick="exportOffer()">⬇ Print / Export</button>
+    </div>
+  </div>
+
+  <div class="g2" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-head">Project Details</div>
+      <div class="g2">
+        <div class="fg"><label class="fl">Client</label><input type="text" id="dash-display-client" disabled></div>
+        <div class="fg"><label class="fl">Country</label><input type="text" id="dash-display-country" disabled></div>
+        <div class="fg"><label class="fl">Location</label><input type="text" id="dash-display-loc" disabled></div>
+        <div class="fg"><label class="fl">Project Reference</label><input type="text" id="dash-display-ref" disabled></div>
+      </div>
+    </div>
+    <div class="card" id="dash-alarms-card" style="display:none">
+      <div class="card-head">Alarms</div>
+      <div class="g3">
+        <div class="fg"><label class="fl">Engineer</label><input type="text" id="al-stat-engineer" disabled></div>
+        <div class="fg"><label class="fl">Equipment Configured</label><input type="text" id="al-stat-entities" disabled></div>
+        <div class="fg"><label class="fl">Active Alarms</label><input type="text" id="al-stat-alarms" disabled></div>
+      </div>
     </div>
   </div>
 
@@ -450,10 +469,14 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
   <div class="card">
     <div class="card-head">0. Client Details</div>
     <div class="g3">
-      <div class="fg"><label class="fl">Client Name</label><input type="text" id="g-name" placeholder="Enter client name"></div>
-      <div class="fg"><label class="fl">Location</label><input type="text" id="g-loc" placeholder="Site location"></div>
-      <div class="fg"><label class="fl">Project Reference</label><input type="text" id="g-ref" placeholder="e.g. SOT-1231"></div>
+      <div class="fg"><label class="fl">Client Name</label>
+        <input type="text" id="g-name" list="customer-datalist" placeholder="Start typing a customer name…" oninput="onClientNameInput()">
+        <datalist id="customer-datalist"></datalist>
+      </div>
+      <div class="fg"><label class="fl">Country</label><input type="text" id="g-country" placeholder="Auto-fills for known customers" oninput="syncDashboardProjectFields()"></div>
+      <div class="fg"><label class="fl">Location</label><input type="text" id="g-loc" placeholder="Site location" oninput="syncDashboardProjectFields()"></div>
     </div>
+    <div class="fg" style="margin-top:14px"><label class="fl">Project Reference</label><input type="text" id="g-ref" placeholder="e.g. SOT-1231" style="max-width:280px" oninput="syncDashboardProjectFields()"></div>
   </div>
 
   <div class="card">
@@ -1163,29 +1186,6 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
   </div>
 </div>
 
-<div id="page-alarms-info" class="page">
-  <div class="ph"><div><div class="ph-title">Alarms — Project Info</div><div class="ph-sub">Engineer, Administrator, and Super Admin only</div></div></div>
-  <div class="card">
-    <div class="card-head">Project Details</div>
-    <div class="note" style="margin-bottom:14px">Client, Location and Project Reference are shared with the rest of this project — edit them in <a href="#" onclick="document.querySelector('.nav-item[data-p=general]').click();return false" style="color:var(--copper)">General Info</a> and they'll carry through to the alarm exports automatically.</div>
-    <div class="g3">
-      <div class="fg"><label class="fl">Client</label><input type="text" id="al-display-client" disabled></div>
-      <div class="fg"><label class="fl">Site / Location</label><input type="text" id="al-display-site" disabled></div>
-      <div class="fg"><label class="fl">Project Reference</label><input type="text" id="al-display-ref" disabled></div>
-    </div>
-    <div class="g2" style="margin-top:14px">
-      <div class="fg"><label class="fl">Export Date</label><input type="text" id="al-project-date" placeholder="YYYY-MM-DD"></div>
-      <div class="fg"></div>
-    </div>
-    <div class="fg" style="margin-top:14px"><label class="fl">Notes</label><textarea id="al-project-notes" placeholder="Anything worth noting about this alarm list…" oninput="calcAlarmsPage()"></textarea></div>
-  </div>
-  <div class="g3">
-    <div class="stat"><div class="stat-label">Engineer</div><div class="stat-value c-copper" id="al-stat-engineer" style="font-size:17px">—</div><div class="stat-sub">From your account</div></div>
-    <div class="stat"><div class="stat-label">Equipment Configured</div><div class="stat-value c-blue" id="al-stat-entities">0</div><div class="stat-sub">Types with qty &gt; 0</div></div>
-    <div class="stat"><div class="stat-label">Active Alarms</div><div class="stat-value c-green" id="al-stat-alarms">0</div><div class="stat-sub">Across equipment, common &amp; custom</div></div>
-  </div>
-</div>
-
 <div id="page-alarms-config" class="page">
   <div class="ph"><div><div class="ph-title">Equipment &amp; Alarms</div><div class="ph-sub">Set a quantity for each equipment type to pull in its alarms, then enable or disable individual alarms</div></div></div>
   <div id="alarms-catalog-status" class="note" style="display:none;margin-bottom:14px"></div>
@@ -1259,6 +1259,14 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
 
 <div id="page-alarms-export" class="page">
   <div class="ph"><div><div class="ph-title">Alarms — Export</div><div class="ph-sub">Download the alarm list, or save it as part of this project</div></div></div>
+
+  <div class="card">
+    <div class="card-head">Export Details</div>
+    <div class="g2">
+      <div class="fg"><label class="fl">Export Date</label><input type="text" id="al-project-date" placeholder="YYYY-MM-DD"></div>
+      <div class="fg"><label class="fl">Notes</label><input type="text" id="al-project-notes" placeholder="Anything worth noting about this alarm list…" oninput="calcAlarmsPage()"></div>
+    </div>
+  </div>
 
   <div class="stat-grid">
     <div class="stat"><div class="stat-label">Equipment Types</div><div class="stat-value c-blue" id="al-exp-eqtypes">0</div><div class="stat-sub">Configured with qty &gt; 0</div></div>
@@ -2283,6 +2291,7 @@ function recalcAll() {
   sv('brief-eng-price', fmt(digOnsiteRow ? digOnsiteRow.total : 0));
 
   renderBreakdown(lic.licTotal, hw.hwTotal, md.engTotal, md.travelTotal);
+  if (typeof syncDashboardProjectFields === 'function') syncDashboardProjectFields();
 }
 
 function renderBreakdown(lic, hw, eng, travel) {
@@ -2323,6 +2332,54 @@ async function loadUsers() {
 }
 loadUsers();
 
+// ── Customer master list (data/Customers.xlsx: Customer, Country/region) ──
+// Same pattern as the alarm database: the spreadsheet is the editable source
+// of truth, parsed client-side once XLSX is available.
+let customersData = null;   // Map: name (lowercase) -> {name, country}
+let customersLoadPromise = null;
+function ensureCustomersLoaded() {
+  if (customersData) return Promise.resolve();
+  if (!customersLoadPromise) {
+    customersLoadPromise = (async () => {
+      try {
+        if (typeof XLSX === 'undefined') { console.warn('XLSX library not loaded — customer list unavailable.'); customersData = new Map(); return; }
+        const res = await fetch('data/Customers.xlsx');
+        if (!res.ok) { console.warn('Could not fetch data/Customers.xlsx:', res.status); customersData = new Map(); return; }
+        const buf = await res.arrayBuffer();
+        const wb = XLSX.read(buf, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+        const map = new Map();
+        raw.slice(1).forEach(r => {
+          const name = String(r[0]||'').trim(), country = String(r[1]||'').trim();
+          if (name) map.set(name.toLowerCase(), { name, country });
+        });
+        customersData = map;
+        populateCustomerDatalist();
+      } catch (e) {
+        console.warn('Error loading customer list:', e);
+        customersData = new Map();
+      }
+    })();
+  }
+  return customersLoadPromise;
+}
+function populateCustomerDatalist() {
+  const dl = document.getElementById('customer-datalist');
+  if (!dl || !customersData) return;
+  dl.innerHTML = [...customersData.values()].map(c => `<option value="${c.name.replace(/"/g,'&quot;')}">${c.country ? c.country : ''}</option>`).join('');
+}
+function onClientNameInput() {
+  const nameEl = document.getElementById('g-name');
+  const countryEl = document.getElementById('g-country');
+  if (nameEl && countryEl && customersData) {
+    const match = customersData.get(nameEl.value.trim().toLowerCase());
+    if (match) countryEl.value = match.country;
+  }
+  if (typeof syncDashboardProjectFields === 'function') syncDashboardProjectFields();
+}
+ensureCustomersLoaded();
+
 function doLogin() {
   const u = document.getElementById('login-user').value.trim();
   const p = document.getElementById('login-pass').value;
@@ -2358,7 +2415,7 @@ function doLogin() {
 
   const canSeeAlarms = isAdmin || match.role === 'engineer';
   const navGroupAlarms = document.getElementById('nav-group-alarms'); if (navGroupAlarms) navGroupAlarms.style.display = canSeeAlarms ? '' : 'none';
-  ['nav-item-alarms-info', 'nav-item-alarms-config', 'nav-item-alarms-common', 'nav-item-alarms-export'].forEach(id => {
+  ['nav-item-alarms-config', 'nav-item-alarms-common', 'nav-item-alarms-export'].forEach(id => {
     const el = document.getElementById(id); if (el) el.style.display = canSeeAlarms ? '' : 'none';
   });
   if (canSeeAlarms) ensureAlarmsCatalogLoaded();
@@ -2382,7 +2439,7 @@ function doLogout() {
   });
   document.querySelectorAll('.supplier-link-badge').forEach(b => b.remove());
   const navGroupAlarms = document.getElementById('nav-group-alarms'); if (navGroupAlarms) navGroupAlarms.style.display = 'none';
-  ['nav-item-alarms-info', 'nav-item-alarms-config', 'nav-item-alarms-common', 'nav-item-alarms-export'].forEach(id => {
+  ['nav-item-alarms-config', 'nav-item-alarms-common', 'nav-item-alarms-export'].forEach(id => {
     const el = document.getElementById(id); if (el) el.style.display = 'none';
   });
   // Bounce back to Dashboard if they were on a page that requires being
@@ -5244,10 +5301,12 @@ function annotateAlarmNumberedRows(rows) {
   return rows.map((r,i) => ({...r, line: numLists[i][0] ?? null, num: numLists[i][1] ?? null}));
 }
 async function fetchOneAlarmEquipmentFile(cat, eqName) {
+  const url = `data/Alarms/${encodeURIComponent(cat)}/${encodeURIComponent(eqName)}.xlsx`;
   try {
-    const res = await fetch(`data/Alarms/${encodeURIComponent(cat)}/${encodeURIComponent(eqName)}.xlsx`);
-    if (!res.ok) return null;
+    const res = await fetch(url);
+    if (!res.ok) return { data: null, error: `HTTP ${res.status} at ${url}` };
     const buf = await res.arrayBuffer();
+    if (buf.byteLength === 0) return { data: null, error: `Empty file at ${url}` };
     const wb = XLSX.read(buf, { type: 'array' });
     const sheetDefs = [];
     let lineMin=null, lineMax=null, instMin=null, instMax=null;
@@ -5267,18 +5326,18 @@ async function fetchOneAlarmEquipmentFile(cat, eqName) {
         instMin = instMin===null?r.num:Math.min(instMin,r.num); instMax = instMax===null?r.num:Math.max(instMax,r.num);
       });
     });
-    if (!sheetDefs.length) return null;
-    return { sheets: sheetDefs, hasLines: lineMin!==null, lineRange: lineMin!==null?[lineMin,lineMax]:null, instanceRange: instMin!==null?[instMin,instMax]:null };
-  } catch (e) { console.warn('Error loading alarm file', cat, eqName, e); return null; }
+    if (!sheetDefs.length) return { data: null, error: `No alarm rows found in ${url}` };
+    return { data: { sheets: sheetDefs, hasLines: lineMin!==null, lineRange: lineMin!==null?[lineMin,lineMax]:null, instanceRange: instMin!==null?[instMin,instMax]:null }, error: null };
+  } catch (e) { return { data: null, error: `${e.message} at ${url}` }; }
 }
 async function fetchAlarmCommonSheet() {
   try {
     const res = await fetch('data/alarms_template.xlsx');
-    if (!res.ok) return {};
+    if (!res.ok) return { data: {}, error: `HTTP ${res.status} at data/alarms_template.xlsx` };
     const buf = await res.arrayBuffer();
     const wb = XLSX.read(buf, { type: 'array' });
     const ws = wb.Sheets['Common'];
-    if (!ws) return {};
+    if (!ws) return { data: {}, error: `No "Common" sheet in data/alarms_template.xlsx` };
     const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
     const groups = {};
     let currentGroup = null;
@@ -5287,32 +5346,52 @@ async function fetchAlarmCommonSheet() {
       if (tag && !desc) { currentGroup = String(tag).trim(); if (!groups[currentGroup]) groups[currentGroup] = []; return; }
       if (currentGroup && tag) groups[currentGroup].push({ tag: String(tag).trim(), desc: String(desc||'').trim(), cat: String(cat||'').trim(), id, pri });
     });
-    return groups;
-  } catch (e) { console.warn('Error loading Common sheet', e); return {}; }
+    return { data: groups, error: null };
+  } catch (e) { return { data: {}, error: `${e.message} at data/alarms_template.xlsx` }; }
 }
 function ensureAlarmsCatalogLoaded() {
   if (alarmsCatalog) return Promise.resolve();
   if (!alarmsCatalogLoadPromise) {
+    if (typeof XLSX === 'undefined') {
+      renderAlarmsCatalogStatus('⚠ The Excel-reading library failed to load (lib/xlsx.full.min.js) — the "lib" folder needs to be present alongside index.html. Check your repo includes it, then refresh.');
+      alarmsCatalog = {}; ALARM_EQ_CATS = []; commonAlarmsData = {};
+      return Promise.resolve();
+    }
     renderAlarmsCatalogStatus('Loading the alarm database (49 equipment files)…');
+    const totalFiles = Object.values(ALARM_CATALOG_FILES).reduce((s,f) => s+f.length, 0);
     alarmsCatalogLoadPromise = Promise.all([
       Promise.all(Object.entries(ALARM_CATALOG_FILES).map(async ([cat, files]) => {
-        const results = await Promise.all(files.map(async name => ({ name, data: await fetchOneAlarmEquipmentFile(cat, name) })));
-        const equipMap = {};
-        results.forEach(r => { if (r.data) equipMap[r.name] = r.data; });
-        return { cat, equipMap };
+        const results = await Promise.all(files.map(async name => ({ name, ...(await fetchOneAlarmEquipmentFile(cat, name)) })));
+        const equipMap = {}; const catErrors = [];
+        results.forEach(r => { if (r.data) equipMap[r.name] = r.data; else catErrors.push(r.error); });
+        return { cat, equipMap, catErrors };
       })),
       fetchAlarmCommonSheet(),
     ]).then(([catResults, common]) => {
       const catalog = {};
-      catResults.forEach(({cat, equipMap}) => { if (Object.keys(equipMap).length) catalog[cat] = equipMap; });
+      let loadedCount = 0;
+      const allErrors = [];
+      catResults.forEach(({cat, equipMap, catErrors}) => {
+        if (Object.keys(equipMap).length) catalog[cat] = equipMap;
+        loadedCount += Object.keys(equipMap).length;
+        allErrors.push(...catErrors);
+      });
       alarmsCatalog = catalog;
-      commonAlarmsData = common;
+      commonAlarmsData = common.data;
       ALARM_EQ_CATS = Object.entries(catalog).map(([cat, items]) => ({ cat, items: Object.keys(items).sort() }));
-      renderAlarmsCatalogStatus(null);
+      if (loadedCount === 0) {
+        renderAlarmsCatalogStatus(`⚠ Could not load any of the ${totalFiles} equipment files from data/Alarms/. First error: ${allErrors[0] || 'unknown'}. Check that data/Alarms/ and data/alarms_template.xlsx were uploaded to your repo alongside index.html.`);
+      } else if (loadedCount < totalFiles) {
+        renderAlarmsCatalogStatus(`Loaded ${loadedCount} of ${totalFiles} equipment files — ${totalFiles - loadedCount} failed (see browser console for details). Equipment types that failed to load won't appear in the list below.`);
+        console.warn('Alarm catalog load errors:', allErrors);
+      } else {
+        renderAlarmsCatalogStatus(null);
+      }
+      if (common.error) console.warn('Common sheet:', common.error);
       if (document.getElementById('page-alarms-config')?.classList.contains('active')) renderAlarmsEquipmentList();
     }).catch(e => {
       console.error('Failed to load alarms catalog:', e);
-      renderAlarmsCatalogStatus('Could not load the alarm database from data/Alarms/. Try refreshing.');
+      renderAlarmsCatalogStatus('⚠ Could not load the alarm database — unexpected error: ' + e.message);
     }).finally(() => { alarmsCatalogLoadPromise = null; });
   }
   return alarmsCatalogLoadPromise;
@@ -5322,6 +5401,10 @@ function renderAlarmsCatalogStatus(msg) {
   if (!el) return;
   el.style.display = msg ? 'block' : 'none';
   el.textContent = msg || '';
+  const isWarning = msg && msg.startsWith('⚠');
+  el.style.background = isWarning ? 'var(--red-bg)' : 'var(--copper-bg)';
+  el.style.borderColor = isWarning ? 'rgba(203,98,89,.3)' : 'rgba(95,135,160,.25)';
+  el.style.color = isWarning ? 'var(--red)' : 'var(--t2)';
 }
 
 // ── Entity alarm resolution — mirrors the source app's getAlarmsForEntity()
@@ -5840,24 +5923,32 @@ function calcAlarmsPage() {
   const commonActive = (alarmsState.commonAlarms||[]).filter(a=>!a.deleted).length;
   const customActive = (alarmsState.customProjectAlarms||[]).filter(a=>!a.deleted && a.name).length;
 
-  sv2('al-stat-engineer', currentUser?.label || currentUser?.name || '—');
-  sv2('al-stat-entities', String(totalEntities));
-  sv2('al-stat-alarms', (eqAlarms+commonActive+customActive).toLocaleString());
+  const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  setVal('al-stat-engineer', currentUser?.label || currentUser?.name || '—');
+  setVal('al-stat-entities', String(totalEntities));
+  setVal('al-stat-alarms', (eqAlarms+commonActive+customActive).toLocaleString());
   sv2('al-exp-eqtypes', String(totalEntities));
   sv2('al-exp-eqalarms', eqAlarms.toLocaleString());
   sv2('al-exp-common', commonActive.toLocaleString());
   sv2('al-exp-custom', customActive.toLocaleString());
-  syncAlarmsDisplayFields();
+  syncDashboardProjectFields();
 }
 function sv2(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
-// Client / Location / Project Reference are owned by General Info — this just
-// mirrors the live values so the Alarms Info page always shows what's
-// actually going to be used, without a second copy of the data to keep in sync.
-function syncAlarmsDisplayFields() {
+// Client / Country / Location / Project Reference are owned by General Info —
+// this just mirrors the live values onto the Dashboard so there's a quick
+// summary without a second copy of the data to keep in sync.
+function syncDashboardProjectFields() {
   const setDisp = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || '—'; };
-  setDisp('al-display-client', document.getElementById('g-name')?.value);
-  setDisp('al-display-site', document.getElementById('g-loc')?.value);
-  setDisp('al-display-ref', document.getElementById('g-ref')?.value);
+  setDisp('dash-display-client', document.getElementById('g-name')?.value);
+  setDisp('dash-display-country', document.getElementById('g-country')?.value);
+  setDisp('dash-display-loc', document.getElementById('g-loc')?.value);
+  setDisp('dash-display-ref', document.getElementById('g-ref')?.value);
+  const alarmsCard = document.getElementById('dash-alarms-card');
+  if (alarmsCard) {
+    const role = currentUser?.role;
+    const canSeeAlarmsNow = role === 'admin' || role === 'superadmin' || role === 'engineer';
+    alarmsCard.style.display = canSeeAlarmsNow ? '' : 'none';
+  }
 }
 function todayIso() { return new Date().toISOString().slice(0,10); }
 
