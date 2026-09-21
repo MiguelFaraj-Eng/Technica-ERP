@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCADA Budgeting Tool</title>
+<title>Technica ERP</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -270,8 +270,8 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
 <!-- LOGIN OVERLAY -->
 <div id="login-overlay" class="login-overlay">
   <div class="login-box">
-    <div class="login-logo">Smart Factory</div>
-    <div class="login-title">SCADA Budget</div>
+    <div class="login-title">Technica</div>
+    <div class="login-logo" style="margin-top:2px;margin-bottom:16px">ERP</div>
     <div class="login-sub">Sign in to continue — access level depends on your account</div>
     <div class="login-field">
       <label class="login-label">Username</label>
@@ -291,7 +291,7 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
 <div id="projects-home" class="projects-home" style="display:none">
   <div class="ph-home-header">
     <div>
-      <div class="logo-eyebrow">Smart Factory</div>
+      <div class="logo-eyebrow">Technica ERP</div>
       <div class="ph-home-title">Projects</div>
     </div>
     <div style="display:flex;align-items:center;gap:14px">
@@ -339,8 +339,8 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
 
 <aside class="sidebar">
   <div class="logo">
-    <div class="logo-eyebrow">Smart Factory</div>
-    <div class="logo-title">SCADA Budget</div>
+    <div class="logo-title">Technica</div>
+    <div class="logo-eyebrow" style="margin-top:2px;margin-bottom:0">ERP</div>
   </div>
   <div class="current-project-box">
     <div class="cp-label">Current Project</div>
@@ -356,10 +356,7 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
     <div class="nav-group" onclick="toggleNavGroup(this)">Overview<span class="nav-group-arrow">▾</span></div>
     <div class="nav-item active" data-p="dashboard"><span class="nav-dot"></span>Dashboard</div>
     <div class="nav-group" onclick="toggleNavGroup(this)">Configuration<span class="nav-group-arrow">▾</span></div>
-    <div class="nav-item" data-p="general"><span class="nav-dot"></span>General Info</div>
-    <div class="nav-item" data-p="production"><span class="nav-dot"></span>Production Data</div>
-    <div class="nav-item" data-p="equipment"><span class="nav-dot"></span>Technica Equipment</div>
-    <div class="nav-item" data-p="supplier"><span class="nav-dot"></span>Supplier Equipment</div>
+    <div class="nav-item" data-p="client-info"><span class="nav-dot"></span>General Info</div>
     <div class="nav-group" onclick="toggleNavGroup(this)">Electrical Cabinet<span class="nav-group-arrow">▾</span></div>
     <div class="nav-item" data-p="cabinet-config"><span class="nav-dot"></span>Configurator</div>
     <div class="nav-item" data-p="cabinet-bom"><span class="nav-dot"></span>Bill of Materials</div>
@@ -369,6 +366,11 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
     <div class="nav-item" data-p="hardware"><span class="nav-dot"></span>Hardware</div>
     <div class="nav-item" data-p="mandays"><span class="nav-dot"></span>Mandays</div>
     <div class="nav-item" data-p="brief"><span class="nav-dot"></span>Budget Brief</div>
+    <div class="nav-group" onclick="toggleNavGroup(this)">SCADA Configuration<span class="nav-group-arrow">▾</span></div>
+    <div class="nav-item" data-p="general"><span class="nav-dot"></span>General Info</div>
+    <div class="nav-item" data-p="production"><span class="nav-dot"></span>Production Data</div>
+    <div class="nav-item" data-p="equipment"><span class="nav-dot"></span>Technica Equipment</div>
+    <div class="nav-item" data-p="supplier"><span class="nav-dot"></span>Supplier Equipment</div>
     <div class="nav-group" id="nav-group-alarms" onclick="toggleNavGroup(this)" style="display:none">Alarms Configuration<span class="nav-group-arrow">▾</span></div>
     <div class="nav-item" data-p="alarms-config" id="nav-item-alarms-config" style="display:none"><span class="nav-dot"></span>Equipment &amp; Alarms</div>
     <div class="nav-item" data-p="alarms-common" id="nav-item-alarms-common" style="display:none"><span class="nav-dot"></span>Common &amp; Custom</div>
@@ -437,6 +439,18 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
     <div class="stat"><div class="stat-label">Final Price Ex-Works</div><div class="stat-value c-green" id="d-total">$78,628</div><div class="stat-sub" id="d-margin">Gross margin: 38.4%</div></div>
   </div>
 
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">Electrical Cabinet</div>
+    <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:0">
+      <div class="stat"><div class="stat-label">Material</div><div class="stat-value c-blue" id="dash-cab-material">$0</div><div class="stat-sub">Selected components</div></div>
+      <div class="stat"><div class="stat-label">Design</div><div class="stat-value" id="dash-cab-design">$0</div><div class="stat-sub">Engineering</div></div>
+      <div class="stat"><div class="stat-label">Testing</div><div class="stat-value" id="dash-cab-testing">$0</div><div class="stat-sub">Per-SKU testing</div></div>
+      <div class="stat"><div class="stat-label">Factory Labor</div><div class="stat-value c-amber" id="dash-cab-factorylabor">$0</div><div class="stat-sub">Assembly hours</div></div>
+      <div class="stat"><div class="stat-label">Factory Material</div><div class="stat-value" id="dash-cab-factorymat">$0</div><div class="stat-sub">Cabling &amp; hardware</div></div>
+      <div class="stat"><div class="stat-label">Total Cost</div><div class="stat-value c-green" id="dash-cab-total">$0</div><div class="stat-sub">All-in</div></div>
+    </div>
+  </div>
+
   <div class="g2" style="margin-bottom:16px">
     <div class="card" id="card-budget-target">
       <div class="card-head">Budget vs Client Target ($200,000)</div>
@@ -462,22 +476,42 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
   </div>
 </div>
 
-<!-- ═══ GENERAL INFO ═══ -->
-<div id="page-general" class="page">
-  <div class="ph"><div><div class="ph-title">General Information</div><div class="ph-sub">SMART Factory questionnaire</div></div></div>
+<!-- ═══ CONFIGURATION: GENERAL INFO (Client Details) ═══ -->
+<div id="page-client-info" class="page">
+  <div class="ph"><div><div class="ph-title">General Information</div><div class="ph-sub">Client details for this project — shared across the whole application</div></div></div>
 
   <div class="card">
-    <div class="card-head">0. Client Details</div>
+    <div class="card-head">Client Details</div>
     <div class="g3">
       <div class="fg"><label class="fl">Client Name</label>
         <input type="text" id="g-name" list="customer-datalist" placeholder="Start typing a customer name…" oninput="onClientNameInput()">
         <datalist id="customer-datalist"></datalist>
       </div>
       <div class="fg"><label class="fl">Country</label><input type="text" id="g-country" placeholder="Auto-fills for known customers" oninput="syncDashboardProjectFields()"></div>
-      <div class="fg"><label class="fl">Location</label><input type="text" id="g-loc" placeholder="Site location" oninput="syncDashboardProjectFields()"></div>
+      <div class="fg"><label class="fl">Project Reference</label><input type="text" id="g-ref" placeholder="e.g. SOT-1231" oninput="syncDashboardProjectFields()"></div>
     </div>
-    <div class="fg" style="margin-top:14px"><label class="fl">Project Reference</label><input type="text" id="g-ref" placeholder="e.g. SOT-1231" style="max-width:280px" oninput="syncDashboardProjectFields()"></div>
+    <div class="g2" style="margin-top:14px">
+      <div class="fg"><label class="fl">Location</label><input type="text" id="g-loc" placeholder="Site location" oninput="syncDashboardProjectFields()"></div>
+      <div class="fg"><label class="fl">Project Currency</label>
+        <select id="g-currency" onchange="syncDashboardProjectFields()">
+          <option value="USD">USD — US Dollar</option>
+          <option value="EUR">EUR — Euro</option>
+          <option value="GBP">GBP — British Pound</option>
+          <option value="AED">AED — UAE Dirham</option>
+          <option value="SAR">SAR — Saudi Riyal</option>
+          <option value="QAR">QAR — Qatari Riyal</option>
+          <option value="EGP">EGP — Egyptian Pound</option>
+        </select>
+      </div>
+    </div>
   </div>
+
+  <div class="note">More sections will be added here.</div>
+</div>
+
+<!-- ═══ GENERAL INFO ═══ -->
+<div id="page-general" class="page">
+  <div class="ph"><div><div class="ph-title">SCADA Configuration</div><div class="ph-sub">Technica questionnaire — technical details for the SCADA system itself</div></div></div>
 
   <div class="card">
     <div class="card-head">1. Plants / Rooms / Areas</div>
@@ -2640,7 +2674,7 @@ function exportOffer() {
 
 <div class="doc-header">
   <div>
-    <div class="doc-logo">Smart Factory · SCADA Division</div>
+    <div class="doc-logo">Technica · SCADA Division</div>
     <div class="doc-title">Commercial Offer</div>
     <div style="font-size:12px;color:#555;margin-top:4px">SCADA System Supply & Implementation</div>
   </div>
@@ -2820,7 +2854,7 @@ function exportOffer() {
 </div>
 
 <div class="doc-footer">
-  <span>Generated by SCADA Budget Tool — Smart Factory Division</span>
+  <span>Generated by Technica ERP — SCADA Division</span>
   <span>${today} · Ref: SF-SCADA-${new Date().getFullYear()}</span>
 </div>
 
@@ -2989,7 +3023,7 @@ function buildProjectSnapshot() {
     alarms: buildAlarmsSnapshot(),
   };
 
-  ['#page-general', '#page-production'].forEach(sel => {
+  ['#page-client-info', '#page-general', '#page-production'].forEach(sel => {
     document.querySelectorAll(sel + ' [id]').forEach(el => {
       if (!el.matches('input, select, textarea')) return;
       snap.fields[el.id] = el.type === 'checkbox' ? el.checked : el.value;
@@ -3445,7 +3479,7 @@ function returnToProjectsHome() {
 // previous session) and before opening one (so stale fields from the last
 // project don't bleed into fields the new snapshot doesn't happen to set).
 function resetAppToBlank() {
-  document.querySelectorAll('#page-general input, #page-general select, #page-production input, #page-production select').forEach(el => {
+  document.querySelectorAll('#page-client-info input, #page-client-info select, #page-general input, #page-general select, #page-production input, #page-production select').forEach(el => {
     if (el.type === 'checkbox') el.checked = false; else if (el.tagName === 'SELECT') el.selectedIndex = 0; else el.value = '';
   });
   ['equip-t-body','equip-s-body'].forEach(id => { const tb = document.getElementById(id); if (tb) tb.innerHTML = ''; });
@@ -4326,6 +4360,12 @@ function calcCabinetPage() {
   sv('cab-sum-factorylabor', fmt(r.factoryCost));
   sv('cab-sum-factorymat', fmt(r.factoryMaterial));
   sv('cab-sum-total', fmt(r.total));
+  sv('dash-cab-material', fmt(r.material));
+  sv('dash-cab-design', fmt(r.design));
+  sv('dash-cab-testing', fmt(r.testingCost));
+  sv('dash-cab-factorylabor', fmt(r.factoryCost));
+  sv('dash-cab-factorymat', fmt(r.factoryMaterial));
+  sv('dash-cab-total', fmt(r.total));
   sv('cab-detail-material', fmt(r.material));
   sv('cab-detail-design', fmt(r.design));
   sv('cab-detail-testing', fmt(r.testingCost));
