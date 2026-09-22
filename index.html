@@ -504,7 +504,7 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
         <datalist id="customer-datalist"></datalist>
       </div>
       <div class="fg"><label class="fl">Country</label><input type="text" id="g-country" placeholder="Auto-fills for known customers" oninput="syncDashboardProjectFields()"></div>
-      <div class="fg"><label class="fl">Project Reference</label><input type="text" id="g-ref" placeholder="e.g. SOT-1231" oninput="syncDashboardProjectFields()"></div>
+      <div class="fg"><label class="fl">Project Reference</label><input type="text" id="g-ref" placeholder="e.g. SOT-1231" oninput="syncDashboardProjectFields();onProjectRefInput()"></div>
     </div>
     <div class="g2" style="margin-top:14px">
       <div class="fg"><label class="fl">Location</label><input type="text" id="g-loc" placeholder="Site location" oninput="syncDashboardProjectFields()"></div>
@@ -753,13 +753,14 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
     <div class="card-head">Number of PCs</div>
     <div class="g3">
       <div class="fg"><label class="fl">Total PCs</label>
-        <select id="g-pcs"><option>Three</option><option>One</option><option>Two</option><option>Four</option><option>Five</option></select></div>
+        <select id="g-pcs" onchange="checkPcCounts()"><option>Three</option><option>One</option><option>Two</option><option>Four</option><option>Five</option></select></div>
       <div class="fg"><label class="fl">Servers</label>
-        <select id="g-srv"><option>One</option><option>Two</option></select></div>
+        <select id="g-srv" onchange="checkPcCounts()"><option>One</option><option>Two</option><option>Three</option><option>Four</option><option>Five</option></select></div>
       <div class="fg"><label class="fl">Clients</label>
-        <select id="g-cli"><option>Two</option><option>One</option><option>Three</option></select></div>
+        <select id="g-cli" onchange="checkPcCounts()"><option>Two</option><option>One</option><option>Three</option><option>Four</option><option>Five</option></select></div>
     </div>
-    <div class="note" style="margin-top:12px">Preferred PC specs if customer-provided: OS Windows 10 Pro, Processor min 3.10 GHz, RAM 32GB, Network Port.</div>
+    <div id="pc-count-note" class="note" style="margin-top:12px"></div>
+    <div class="note" style="margin-top:8px">Preferred PC specs if customer-provided: OS Windows 10 Pro, Processor min 3.10 GHz, RAM 32GB, Network Port.</div>
   </div>
 
   <div class="card">
@@ -1880,6 +1881,21 @@ function matchWord(w) {
   const map = { zero:0, one:1, two:2, three:3, four:4, five:5, unlimited:999 };
   return map[(w||'').toLowerCase().trim()] ?? 0;
 }
+function checkPcCounts() {
+  const el = document.getElementById('pc-count-note');
+  if (!el) return;
+  const total = matchWord(document.getElementById('g-pcs')?.value);
+  const srv = matchWord(document.getElementById('g-srv')?.value);
+  const cli = matchWord(document.getElementById('g-cli')?.value);
+  const sum = srv + cli;
+  if (sum === total) {
+    el.textContent = `✓ ${srv} Server${srv===1?'':'s'} + ${cli} Client${cli===1?'':'s'} = ${sum}, matching Total PCs.`;
+    el.style.background = 'var(--green-bg)'; el.style.borderColor = 'rgba(107,175,133,.3)'; el.style.color = 'var(--green)';
+  } else {
+    el.textContent = `⚠ ${srv} Server${srv===1?'':'s'} + ${cli} Client${cli===1?'':'s'} = ${sum}, but Total PCs is set to ${total}. Servers and Clients are used independently for hardware sizing, so this doesn't have to match — just flagging it in case it should.`;
+    el.style.background = 'var(--amber-bg)'; el.style.borderColor = 'rgba(220,170,86,.3)'; el.style.color = 'var(--amber)';
+  }
+}
 
 // ─── READ ALL GENERAL INFO ANSWERS ───────────────────────────────
 function G() {
@@ -2576,6 +2592,7 @@ function recalcAll() {
   renderBreakdown(lic.licTotal, hw.hwTotal, md.engTotal, md.travelTotal);
   if (typeof syncDashboardProjectFields === 'function') syncDashboardProjectFields();
   if (typeof calcIiotPanels === 'function') calcIiotPanels();
+  if (typeof checkPcCounts === 'function') checkPcCounts();
 }
 
 function renderBreakdown(lic, hw, eng, travel) {
@@ -3583,6 +3600,22 @@ async function writeFileToGitHubRaw(path, base64Content, commitMessage) {
     throw new Error(errData.message || `HTTP ${putRes.status}`);
   }
 }
+async function deleteFileFromGitHub(path, commitMessage) {
+  const { repo, token } = ghConfig();
+  if (!repo) throw new Error('Could not determine where to delete from.');
+  if (!token) throw new Error('Connect to Cloud first.');
+  const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`;
+  const getRes = await fetch(apiUrl, { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' } });
+  if (!getRes.ok) { if (getRes.status === 404) return; throw new Error(`Could not find file to delete (HTTP ${getRes.status})`); }
+  const sha = (await getRes.json()).sha;
+  const delRes = await fetch(apiUrl, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: commitMessage, sha })
+  });
+  if (!delRes.ok) { const errData = await delRes.json().catch(() => ({})); throw new Error(errData.message || `HTTP ${delRes.status}`); }
+}
+
 async function writeFileToGitHub(path, contentString, commitMessage) {
   return writeFileToGitHubRaw(path, utf8ToBase64(contentString), commitMessage);
 }
@@ -3829,6 +3862,17 @@ function updateCurrentProjectBadge() {
   const ownerEl = document.getElementById('current-project-owner');
   if (ownerEl) ownerEl.textContent = currentProject ? `by ${currentProject.owner}` : '';
 }
+// The project's displayed name follows Project Reference, not the other way
+// around — but the ACTUAL rename (moving the saved file) only happens at
+// save time (see saveCurrentProject), so this just updates what's on screen
+// immediately without touching currentProject.name/path, which would
+// otherwise desync the sidebar from the file GitHub actually has.
+function onProjectRefInput() {
+  if (!currentProject) return;
+  const ref = document.getElementById('g-ref')?.value.trim();
+  const nameEl = document.getElementById('current-project-name');
+  if (nameEl) nameEl.textContent = ref || currentProject.name;
+}
 
 async function saveCurrentProject() {
   if (!currentProject) return;
@@ -3837,9 +3881,30 @@ async function saveCurrentProject() {
   const statusEl = document.getElementById('project-save-status');
   if (statusEl) { statusEl.style.display = 'inline'; statusEl.textContent = 'Saving…'; statusEl.style.color = 'var(--t3)'; }
   try {
+    // Project Reference drives the project's actual name — if it's changed,
+    // rename the file for real (write under the new path, then remove the
+    // old one) so the sidebar, the Projects listing, and the file GitHub
+    // actually has never disagree about what this project is called.
+    const ref = document.getElementById('g-ref')?.value.trim();
+    let targetPath = currentProject.path, targetName = currentProject.name;
+    let oldPathToClean = null;
+    if (ref && ref !== currentProject.name) {
+      const newPath = projectPath(currentProject.owner, ref);
+      if (newPath !== currentProject.path) { targetPath = newPath; targetName = ref; oldPathToClean = currentProject.path; }
+    }
+
     const snap = buildProjectSnapshot();
-    snap.projectName = currentProject.name;
-    await writeFileToGitHub(currentProject.path, JSON.stringify(snap, null, 2), `Update project ${currentProject.name}`);
+    snap.projectName = targetName;
+    await writeFileToGitHub(targetPath, JSON.stringify(snap, null, 2), `Update project ${targetName}`);
+    currentProject.name = targetName;
+    currentProject.path = targetPath;
+    updateCurrentProjectBadge();
+
+    if (oldPathToClean) {
+      try { await deleteFileFromGitHub(oldPathToClean, `Renamed to ${targetName}`); }
+      catch (cleanupErr) { console.warn('Rename saved under the new name, but could not remove the old file:', cleanupErr); }
+    }
+
     if (statusEl) { statusEl.textContent = 'Saved ✓'; statusEl.style.color = 'var(--green)'; setTimeout(() => statusEl.style.display='none', 2500); }
   } catch (err) {
     if (statusEl) { statusEl.textContent = 'Save failed'; statusEl.style.color = 'var(--red)'; }
@@ -5964,13 +6029,13 @@ function renderAlarmsEquipmentList() {
             <div style="display:flex;align-items:center;gap:8px">
               <span style="flex:1;font-size:12.5px;cursor:${entity?'pointer':'default'};font-weight:${active?'700':'400'}" title="${alarmsEsc(name)}" ${entity?`onclick="selectAlarmEntity('${alarmsEscAttr(key)}')"`:''}>${alarmsEsc(name)}</span>
               <button class="btn btn-ghost" style="padding:1px 7px;font-size:12px" onclick="changeAlarmQty('${alarmsEscAttr(key)}','qty',${cfg.qty-1})">−</button>
-              <input type="number" class="en" style="width:34px;text-align:center" min="0" max="99" value="${cfg.qty}" onchange="changeAlarmQty('${alarmsEscAttr(key)}','qty',this.value)">
+              <input type="number" class="en" style="width:60px;text-align:center" min="0" max="99" value="${cfg.qty}" onchange="changeAlarmQty('${alarmsEscAttr(key)}','qty',this.value)">
               <button class="btn btn-ghost" style="padding:1px 7px;font-size:12px" onclick="changeAlarmQty('${alarmsEscAttr(key)}','qty',${cfg.qty+1})">+</button>
               ${chip}
             </div>
             ${showPlacement ? `<div style="display:flex;gap:10px;margin-top:6px;font-size:11px;color:var(--t3)">
-              <span>Line <input type="number" class="en" style="width:32px" min="${equip.lineRange[0]}" max="${equip.lineRange[1]}" value="${cfg.line}" onchange="changeAlarmQty('${alarmsEscAttr(key)}','line',this.value)"></span>
-              <span>Start <input type="number" class="en" style="width:32px" min="${equip.instanceRange[0]}" max="${equip.instanceRange[1]}" value="${cfg.start}" onchange="changeAlarmQty('${alarmsEscAttr(key)}','start',this.value)"></span>
+              <span>Line <input type="number" class="en" style="width:48px" min="${equip.lineRange[0]}" max="${equip.lineRange[1]}" value="${cfg.line}" onchange="changeAlarmQty('${alarmsEscAttr(key)}','line',this.value)"></span>
+              <span>Start <input type="number" class="en" style="width:48px" min="${equip.instanceRange[0]}" max="${equip.instanceRange[1]}" value="${cfg.start}" onchange="changeAlarmQty('${alarmsEscAttr(key)}','start',this.value)"></span>
             </div>` : ''}
           </div>`;
         }).join('')}
