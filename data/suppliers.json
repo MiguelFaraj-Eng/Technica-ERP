@@ -30,7 +30,7 @@
       "item": "Compact GuardLogix5380 L320ERS2",
       "supplier": "Allen Bradley",
       "cost": 3050,
-      "latestPrice": 4050,
+      "latestPrice": 3050,
       "updated": "2026-09-22",
       "email": "",
       "code": "",
@@ -41,6 +41,11 @@
           "date": "2026-09-22",
           "oldPrice": 3050,
           "newPrice": 4050
+        },
+        {
+          "date": "2026-09-22",
+          "oldPrice": 4050,
+          "newPrice": 3050
         }
       ]
     },
