@@ -388,6 +388,7 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
     <div class="nav-item" data-p="suppliers-ref"><span class="nav-dot"></span>Reference Links</div>
     <div class="nav-group" id="nav-group-admin" onclick="toggleNavGroup(this)" style="display:none">Admin<span class="nav-group-arrow">▾</span></div>
     <div class="nav-item" data-p="users" id="nav-item-users" style="display:none"><span class="nav-dot"></span>User Management</div>
+    <div class="nav-item" data-p="rules" id="nav-item-rules" style="display:none"><span class="nav-dot"></span>Rules</div>
   </nav>
   <div class="theme-toggle" onclick="toggleTheme()">
     <div class="toggle-track"><div class="toggle-thumb"></div></div>
@@ -470,7 +471,7 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
 
   <div class="g2" style="margin-bottom:16px">
     <div class="card" id="card-budget-target">
-      <div class="card-head">Budget vs Client Target ($200,000)</div>
+      <div class="card-head">Budget vs Client Target (<span id="budget-target-label">$200,000</span>)</div>
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
         <div style="flex:1"><div class="prog-wrap"><div class="prog-fill" id="d-prog" style="width:39.3%;background:var(--green)"></div></div></div>
         <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;color:var(--green)" id="d-pct">39.3%</span>
@@ -827,9 +828,9 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
           <tr>
             <td>IIoT Panel</td>
             <td class="n" id="iiot-qty">0</td>
-            <td class="n">$1,100</td>
-            <td class="n">45%</td>
-            <td class="n">$2,000</td>
+            <td class="n" id="iiot-unitcost">$1,100</td>
+            <td class="n" id="iiot-marginpct">45%</td>
+            <td class="n" id="iiot-unitprice">$2,000</td>
             <td class="n" id="iiot-totalcost">$0</td>
             <td class="n" id="iiot-totalprice">$0</td>
           </tr>
@@ -930,7 +931,7 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
 <!-- ═══ LICENSES ═══ -->
 <div id="page-licenses" class="page">
   <div id="lic-note" class="lock-notice" style="display:none;background:var(--amber-bg);border-color:rgba(245,166,35,.25);color:var(--amber)"></div>
-  <div id="budget-warn" class="lock-notice" style="display:none;background:var(--red-bg);border-color:rgba(245,101,101,.25);color:var(--red)">⚠ Total price exceeds client budget of $200,000</div>
+  <div id="budget-warn" class="lock-notice" style="display:none;background:var(--red-bg);border-color:rgba(245,101,101,.25);color:var(--red)">⚠ Total price exceeds client budget of <span id="budget-warn-label">$200,000</span></div>
   <div class="lock-notice" id="lock-lic" style="display:none">🔒 Pricing fields are read-only. Sign in as an authorized user to edit.</div>
   <div class="ph"><div><div class="ph-title">Smart Factory License</div><div class="ph-sub">Pick a vendor + product — its module list loads from the license catalog</div></div></div>
 
@@ -1126,14 +1127,14 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
     <div class="card-head" style="color:var(--green)">Final Price Ex-Works</div>
     <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:8px">
       <div style="font-size:32px;font-weight:600;color:var(--green)" id="brief-final">$78,628</div>
-      <div style="font-size:12px;color:var(--t3)">Client budget: $200,000</div>
+      <div style="font-size:12px;color:var(--t3)">Client budget: <span id="brief-budget-label">$200,000</span></div>
     </div>
     <div class="g3" style="margin-top:12px">
       <div class="cost-row"><div class="stat-label">Total Cost</div><div style="font-weight:500" id="brief-cost">$48,454</div></div>
       <div class="cost-row"><div class="stat-label">Gross Margin</div><div style="font-weight:500;color:var(--green)" id="brief-margin">38.4%</div></div>
       <div><div class="stat-label">Budget Used</div><div style="font-weight:500" id="brief-budget-pct">39.3%</div></div>
     </div>
-    <div class="note" style="margin-top:14px;background:var(--green-bg);border-color:rgba(52,211,153,.25)">Client budget: $200,000 — Remaining headroom: <strong id="brief-room">$121,372</strong></div>
+    <div class="note" style="margin-top:14px;background:var(--green-bg);border-color:rgba(52,211,153,.25)">Client budget: <span id="brief-budget-label2">$200,000</span> — Remaining headroom: <strong id="brief-room">$121,372</strong></div>
   </div>
 
   <div class="card">
@@ -1681,6 +1682,39 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
   </div>
 </div>
 
+<!-- ═══ RULES (Admin / Super Admin only) ═══ -->
+<div id="page-rules" class="page">
+  <div class="ph"><div><div class="ph-title">Rules</div><div class="ph-sub">Business rules used throughout the app — changes take effect immediately, for everyone</div></div></div>
+
+  <div class="card">
+    <div class="card-head">IIoT Panel Pricing</div>
+    <div class="note" style="margin-top:0;margin-bottom:14px">Used on the IIoT page under Digital Configuration. Cost is calculated automatically from Selling Price and Margin.</div>
+    <div class="g3">
+      <div class="fg"><label class="fl">Selling Price per Panel ($)</label><input type="number" id="rule-iiot-price" min="0" step="1" oninput="onRuleInput()"></div>
+      <div class="fg"><label class="fl">Margin (%)</label><input type="number" id="rule-iiot-margin" min="0" max="99" step="1" oninput="onRuleInput()"></div>
+      <div class="fg"><label class="fl">Cost per Panel (calculated)</label><input type="text" id="rule-iiot-cost-display" disabled></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Electrical Cabinet</div>
+    <div class="note" style="margin-top:0;margin-bottom:14px">Used to price factory assembly hours in the Bill of Materials.</div>
+    <div class="fg" style="max-width:240px"><label class="fl">Factory Labor Rate ($ / hour)</label><input type="number" id="rule-factory-rate" min="0" step="1" oninput="onRuleInput()"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Project Defaults</div>
+    <div class="note" style="margin-top:0;margin-bottom:14px">Applied automatically when a new project is created. Existing projects keep whatever they already have — this doesn't reach back and change them.</div>
+    <div class="g2">
+      <div class="fg"><label class="fl">Default Margin for Hardware (%)</label><input type="number" id="rule-default-margin" min="0" max="99" step="1" oninput="onRuleInput()"></div>
+      <div class="fg"><label class="fl">Default Client Budget Target ($)</label><input type="number" id="rule-default-budget" min="0" step="1000" oninput="onRuleInput()"></div>
+    </div>
+  </div>
+
+  <button class="btn btn-primary" onclick="saveRulesToCloud()">☁ Save Rules to Cloud</button>
+  <div class="note" id="rules-save-status" style="margin-top:10px;display:none"></div>
+</div>
+
 <!-- ═══ MY PROFILE (every signed-in user) ═══ -->
 <div id="page-profile" class="page">
   <div class="ph"><div><div class="ph-title">My Profile</div><div class="ph-sub">Update your picture, display name, and password</div></div></div>
@@ -1844,9 +1878,9 @@ function unitPrice(cost, marginPct) {
 
 // IIoT panels: selling price and margin are fixed business terms (not
 // user-editable here) — cost is derived from them: cost = price * (1 - margin/100).
-const IIOT_UNIT_PRICE = 2000;
-const IIOT_MARGIN_PCT = 45;
-const IIOT_UNIT_COST = IIOT_UNIT_PRICE * (1 - IIOT_MARGIN_PCT / 100); // = 1100
+function IIOT_UNIT_PRICE() { return businessRules.iiotUnitPrice; }
+function IIOT_MARGIN_PCT() { return businessRules.iiotMarginPct; }
+function IIOT_UNIT_COST() { return IIOT_UNIT_PRICE() * (1 - IIOT_MARGIN_PCT() / 100); }
 function calcIiotPanels() {
   const neededEl = document.getElementById('iiot-needed');
   const wrap = document.getElementById('iiot-panels-wrap');
@@ -1855,8 +1889,11 @@ function calcIiotPanels() {
   const el = document.getElementById('iiot-panels');
   const qty = needed ? Math.max(0, parseInt(el?.value) || 0) : 0;
   sv('iiot-qty', String(qty));
-  sv('iiot-totalcost', fmt(qty * IIOT_UNIT_COST));
-  sv('iiot-totalprice', fmt(qty * IIOT_UNIT_PRICE));
+  sv('iiot-unitcost', fmt(IIOT_UNIT_COST()));
+  sv('iiot-marginpct', IIOT_MARGIN_PCT() + '%');
+  sv('iiot-unitprice', fmt(IIOT_UNIT_PRICE()));
+  sv('iiot-totalcost', fmt(qty * IIOT_UNIT_COST()));
+  sv('iiot-totalprice', fmt(qty * IIOT_UNIT_PRICE()));
   syncFullProjectCost();
 }
 // Reads the three already-computed totals straight from the DOM (each area
@@ -1951,7 +1988,7 @@ function G() {
     hypercareOnsiteDays : parseFloat(gv('g-hypercare-onsite')) || 0, // G221
     hypercareEngCount   : gv('g-hypercare-eng'),  // G222 "Two"|"Three"|"Four"
     // Q20 — G229
-    clientBudget  : parseFloat(gv('g-budget')) || 200000,
+    clientBudget  : parseFloat(gv('g-budget')) || businessRules.defaultClientBudget,
   };
 }
 
@@ -2585,6 +2622,10 @@ function recalcAll() {
   sv('brief-margin',      fmtP(grossMargin));
   sv('brief-budget-pct',  budgetPct.toFixed(1) + '%');
   sv('brief-room',        fmt(room));
+  sv('budget-target-label', fmt(g.clientBudget));
+  sv('budget-warn-label', fmt(g.clientBudget));
+  sv('brief-budget-label', fmt(g.clientBudget));
+  sv('brief-budget-label2', fmt(g.clientBudget));
   sv('brief-hw-price',    fmt(hw.hwTotal));
   sv('brief-sw-price',    fmt(lic.licTotal));
   const digOnsiteRow = md.engRows.find(r => r.name.includes('Digital Eng. Onsite'));
@@ -2682,6 +2723,69 @@ function onClientNameInput() {
 }
 ensureCustomersLoaded();
 
+// ── Business Rules (data/rules.json) ──────────────────────────────
+// Defaults here match the values that used to be hardcoded constants —
+// loading is purely additive until an admin actually changes something.
+let businessRules = {
+  iiotUnitPrice: 2000, iiotMarginPct: 45,
+  factoryLaborRate: 120,
+  defaultMargin: 55,
+  defaultClientBudget: 200000,
+};
+let rulesLoadPromise = null;
+function ensureRulesLoaded() {
+  if (rulesLoadPromise) return rulesLoadPromise;
+  rulesLoadPromise = fetch('data/rules.json').then(r => r.ok ? r.json() : null).then(data => {
+    if (data) Object.assign(businessRules, data);
+    if (typeof recalcAll === 'function') recalcAll();
+    if (typeof calcCabinetPage === 'function') calcCabinetPage();
+    if (typeof renderRulesPage === 'function') renderRulesPage();
+  }).catch(e => console.warn('Could not load data/rules.json, using defaults:', e));
+  return rulesLoadPromise;
+}
+ensureRulesLoaded();
+
+// ── Rules page: render, live-edit, save ────────────────────────────
+function renderRulesPage() {
+  const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  setVal('rule-iiot-price', businessRules.iiotUnitPrice);
+  setVal('rule-iiot-margin', businessRules.iiotMarginPct);
+  setVal('rule-factory-rate', businessRules.factoryLaborRate);
+  setVal('rule-default-margin', businessRules.defaultMargin);
+  setVal('rule-default-budget', businessRules.defaultClientBudget);
+  const costEl = document.getElementById('rule-iiot-cost-display');
+  if (costEl) costEl.value = fmt(IIOT_UNIT_COST());
+}
+// Rules take effect immediately as an admin edits them (same pattern as
+// every other live-calculating page in the app) — "Save to Cloud" persists
+// that for everyone else, it doesn't gate whether the change applies here.
+function onRuleInput() {
+  const num = (id, fallback) => { const v = parseFloat(document.getElementById(id)?.value); return isNaN(v) ? fallback : v; };
+  businessRules.iiotUnitPrice = num('rule-iiot-price', businessRules.iiotUnitPrice);
+  businessRules.iiotMarginPct = Math.min(99, Math.max(0, num('rule-iiot-margin', businessRules.iiotMarginPct)));
+  businessRules.factoryLaborRate = num('rule-factory-rate', businessRules.factoryLaborRate);
+  businessRules.defaultMargin = Math.min(99, Math.max(0, num('rule-default-margin', businessRules.defaultMargin)));
+  businessRules.defaultClientBudget = num('rule-default-budget', businessRules.defaultClientBudget);
+  const costEl = document.getElementById('rule-iiot-cost-display');
+  if (costEl) costEl.value = fmt(IIOT_UNIT_COST());
+  if (typeof calcIiotPanels === 'function') calcIiotPanels();
+  if (typeof calcCabinetPage === 'function') calcCabinetPage();
+  if (typeof recalcAll === 'function') recalcAll();
+}
+async function saveRulesToCloud() {
+  const statusEl = document.getElementById('rules-save-status');
+  const { token } = ghConfig();
+  if (!token) { alert('Connect to Cloud first — see the Projects screen.'); return; }
+  if (statusEl) { statusEl.style.display = 'block'; statusEl.textContent = 'Saving…'; statusEl.style.color = 'var(--t3)'; }
+  try {
+    await writeFileToGitHub('data/rules.json', JSON.stringify(businessRules, null, 2), 'Update business rules');
+    if (statusEl) { statusEl.textContent = 'Saved ✓ — these rules now apply for everyone.'; statusEl.style.color = 'var(--green)'; }
+  } catch (err) {
+    if (statusEl) { statusEl.textContent = 'Save failed: ' + err.message; statusEl.style.color = 'var(--red)'; }
+  }
+}
+document.querySelector('.nav-item[data-p="rules"]')?.addEventListener('click', renderRulesPage);
+
 function doLogin() {
   const u = document.getElementById('login-user').value.trim();
   const p = document.getElementById('login-pass').value;
@@ -2706,6 +2810,7 @@ function doLogin() {
   const canManageUsers = isAdmin;
   const navGroupAdmin = document.getElementById('nav-group-admin'); if (navGroupAdmin) navGroupAdmin.style.display = canManageUsers ? '' : 'none';
   const navItemUsers = document.getElementById('nav-item-users'); if (navItemUsers) navItemUsers.style.display = canManageUsers ? '' : 'none';
+  const navItemRules = document.getElementById('nav-item-rules'); if (navItemRules) navItemRules.style.display = canManageUsers ? '' : 'none';
   if (canManageUsers) renderUserManagementTable();
 
   const canSeeSuppliers = isAdmin || match.role === 'procurement';
@@ -2736,6 +2841,7 @@ function doLogout() {
   document.body.className = document.body.className.replace(/\brole-\S+/g, '').trim();
   const navGroupAdmin = document.getElementById('nav-group-admin'); if (navGroupAdmin) navGroupAdmin.style.display = 'none';
   const navItemUsers = document.getElementById('nav-item-users'); if (navItemUsers) navItemUsers.style.display = 'none';
+  const navItemRules = document.getElementById('nav-item-rules'); if (navItemRules) navItemRules.style.display = 'none';
   ['nav-item-suppliers-overview', 'nav-item-suppliers', 'nav-item-suppliers-vendors', 'nav-item-suppliers-history'].forEach(id => {
     const el = document.getElementById(id); if (el) el.style.display = 'none';
   });
@@ -2943,7 +3049,7 @@ function exportFullProjectExcel() {
       ['IIoT'],
       [],
       ['Item', 'Qty', 'Unit Cost', 'Margin', 'Unit Selling Price', 'Total Cost', 'Total Selling Price'],
-      ['IIoT Panel', qty, IIOT_UNIT_COST, IIOT_MARGIN_PCT + '%', IIOT_UNIT_PRICE, qty * IIOT_UNIT_COST, qty * IIOT_UNIT_PRICE],
+      ['IIoT Panel', qty, IIOT_UNIT_COST(), IIOT_MARGIN_PCT() + '%', IIOT_UNIT_PRICE(), qty * IIOT_UNIT_COST(), qty * IIOT_UNIT_PRICE()],
     ];
     const wsIiot = XLSX.utils.aoa_to_sheet(iiotAoa);
     wsIiot['!cols'] = [{wch:16},{wch:8},{wch:12},{wch:10},{wch:16},{wch:14},{wch:16}];
@@ -3962,6 +4068,7 @@ function resetAppToBlank() {
     else if (el.type === 'checkbox') el.checked = false;
     else if (el.type === 'number') el.value = el.id === 'cab-skus' ? '1' : (el.id === 'cab-layout-length' ? '10' : '0');
   });
+  document.querySelectorAll('.hm').forEach(el => { el.value = businessRules.defaultMargin; });
   recalcAll();
   calcCabinetPage();
   resetAlarmsToBlank();
@@ -4605,7 +4712,7 @@ function calcCabinet(inp, catalog, costingData) {
   const factoryHours = numberOfPanels*costingData.factory.doorCost.twoDoors
     + Math.ceil(Math.max(0, extraDoorCalc - numberOfPanels*10)/10)*costingData.factory.doorCost.oneDoor
     + factoryBaseHours;
-  const factoryCost = factoryHours * costingData.factory.factoryDayCostPerHour;
+  const factoryCost = factoryHours * (typeof businessRules !== 'undefined' ? businessRules.factoryLaborRate : costingData.factory.factoryDayCostPerHour);
 
   const costRow = costingData.designTestingMatrix.find(r => r.type===inp.application && r.level===inp.complexity);
   const designCostBase = costRow ? costRow.design : 0;
