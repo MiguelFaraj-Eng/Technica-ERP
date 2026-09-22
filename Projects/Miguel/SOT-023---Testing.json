@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "savedAt": "2026-09-22T07:32:30.344Z",
+  "savedAt": "2026-09-22T07:47:19.703Z",
   "fields": {
     "g-name": "Sohat - Lebanon. Perrier Vittel Group N",
     "g-country": "LBN",
@@ -2068,15 +2068,222 @@
       "hmi": 2
     },
     "manualAdds": {},
-    "specialItems": []
+    "specialItems": [
+      {
+        "id": "si-mucdd7xh5ux3",
+        "name": "",
+        "qty": 1,
+        "price": 0
+      }
+    ]
   },
   "alarms": {
     "info": {
       "date": "2026-09-22",
       "notes": ""
     },
-    "quantities": {},
-    "entityAlarms": {},
+    "quantities": {
+      "Equipments|Infeeder": {
+        "qty": 1,
+        "line": 1,
+        "start": 1
+      },
+      "Equipments|Interlayer Magazine": {
+        "qty": 1,
+        "line": 1,
+        "start": 1
+      }
+    },
+    "entityAlarms": {
+      "Equipments|Infeeder": {
+        "eqName": "Infeeder",
+        "eqCat": "Equipments",
+        "qty": 1,
+        "line": 1,
+        "start": 1,
+        "alarmGroups": [
+          {
+            "alarmType": "Wrong Count",
+            "category": "Operational Failures",
+            "alarms": [
+              {
+                "name": "Wrong Count",
+                "desc": "WRONG COUNT AT HOPPER. FIX ISSUE THEN GO TO OP CONTROL SCREEN AND INITIALIZE SYSTEM.",
+                "value": "",
+                "priority": "",
+                "deleted": false,
+                "category": "Operational Failures",
+                "subCategory": "Operational Failures",
+                "subSubCategory": "Sequence Interruption"
+              },
+              {
+                "name": "Wrong Count",
+                "desc": "WRONG CARTONS COUNT ON INFEEDER. FIX ISSUE THEN GO TO OP CONTROL SCREEN AND INITIALIZE SYSTEM.",
+                "value": "",
+                "priority": "",
+                "deleted": false,
+                "category": "Uncategorized",
+                "subCategory": "Operational Failures",
+                "subSubCategory": "Sequence Interruption"
+              }
+            ]
+          },
+          {
+            "alarmType": "Wrong Cartons Positions Picking",
+            "category": "Operational Failures",
+            "alarms": [
+              {
+                "name": "Wrong Cartons Positions Picking",
+                "desc": "WRONG POSITIONS OF CARTON ON PICKING CONVEYOR. FIX ISSUE THEN GO TO OP CONTROL SCREEN AND INITIALIZE SYSTEM.",
+                "value": "-",
+                "priority": "Critical",
+                "deleted": false,
+                "category": "Operational Failures",
+                "subCategory": "Sequence Interruption",
+                "subSubCategory": "Infeeder"
+              }
+            ]
+          },
+          {
+            "alarmType": "Wrong Cartons Positions Buffer",
+            "category": "Operational Failures",
+            "alarms": [
+              {
+                "name": "Wrong Cartons Positions Buffer",
+                "desc": "WRONG POSITIONS OF CARTON ON BUFFER CONVEYOR. FIX ISSUE THEN GO TO OP CONTROL SCREEN AND INITIALIZE SYSTEM.",
+                "value": "-",
+                "priority": "Fault",
+                "deleted": false,
+                "category": "Operational Failures",
+                "subCategory": "Sequence Interruption",
+                "subSubCategory": "Infeeder"
+              }
+            ]
+          },
+          {
+            "alarmType": "Remaining Products on Picking",
+            "category": "Operational Failures",
+            "alarms": [
+              {
+                "name": "Remaining Products on Picking",
+                "desc": "REMAINING PRODUCTS ON INFEEDER PICKING CONVEYOR AFTER PICKING. FIX ISSUE (PLACE ON THE PALLET) THEN GO TO OP CONTROL SCREEN AND INITIALIZE SYSTEM.",
+                "value": "-",
+                "priority": "Fault",
+                "deleted": false,
+                "category": "Operational Failures",
+                "subCategory": "Sequence Interruption",
+                "subSubCategory": "Infeeder"
+              }
+            ]
+          },
+          {
+            "alarmType": "Wrong Cartons Alignment",
+            "category": "Operational Failures",
+            "alarms": [
+              {
+                "name": "Wrong Cartons Alignment",
+                "desc": "WRONG ALIGNMENT OF CARTONS ON INFEEDER PICKING CONVEYOR. FIX ISSUE THEN GO TO CONTROL SCREEN AND INITIALIZE SYSTEM.",
+                "value": "-",
+                "priority": "Fault",
+                "deleted": false,
+                "category": "Operational Failures",
+                "subCategory": "Sequence Interruption",
+                "subSubCategory": "Infeeder"
+              }
+            ]
+          },
+          {
+            "alarmType": "Product Pick Failure",
+            "category": "Operational Failures",
+            "alarms": [
+              {
+                "name": "Product Pick Failure",
+                "desc": "PRODUCT IS NOT CORRECTLY PICKED FROM INFEEDER. FIX ISSUE THEN GO TO OP CONTROL SCREEN AND INITIALIZE SYSTEM.",
+                "value": "-",
+                "priority": "Fault",
+                "deleted": false,
+                "category": "Operational Failures",
+                "subCategory": "Sequence Interruption",
+                "subSubCategory": "Infeeder"
+              }
+            ]
+          },
+          {
+            "alarmType": "Clearance Detection",
+            "category": "Operational Failures",
+            "alarms": [
+              {
+                "name": "Clearance Detection",
+                "desc": "CLEARANCE SENSOR IS DETECTING A CARTON ON INFEEDER PICKING CONVEYOR. FIX ISSUE THEN GO TO OP CONTROL SCREEN AND INITIALIZE SYSTEM.",
+                "value": "-",
+                "priority": "Fault",
+                "deleted": false,
+                "category": "Operational Failures",
+                "subCategory": "Sequence Interruption",
+                "subSubCategory": "Infeeder"
+              }
+            ]
+          }
+        ]
+      },
+      "Equipments|Interlayer Magazine": {
+        "eqName": "Interlayer Magazine",
+        "eqCat": "Equipments",
+        "qty": 1,
+        "line": 1,
+        "start": 1,
+        "alarmGroups": [
+          {
+            "alarmType": "Interlayer Magazine (Laser Alar",
+            "category": "Electrical Failures",
+            "alarms": [
+              {
+                "name": "L01-DL01",
+                "desc": "WRONG READING FOR LASER SENSOR L01-DL01 CHECK SENSOR READINGS AND VALUES.",
+                "value": "DL",
+                "priority": "Fault",
+                "deleted": false,
+                "category": "Electrical Failures",
+                "subCategory": "Hardware Faults",
+                "subSubCategory": "Interlayer Magazine (Laser Alarm)"
+              }
+            ]
+          },
+          {
+            "alarmType": "Interlayer Magazine (Empty)",
+            "category": "Operational Failures",
+            "alarms": [
+              {
+                "name": "L01-DL01 LMPTY",
+                "desc": "INTERLAYER MAGAZINE IS EMPTY. FILL MAGAZINE TO RESUME OPERATION.",
+                "value": "DL",
+                "priority": "Critical",
+                "deleted": false,
+                "category": "Operational Failures",
+                "subCategory": "Gap/Starvation",
+                "subSubCategory": "Interlayer Magazine (Empty)"
+              }
+            ]
+          },
+          {
+            "alarmType": "Interlayer Magazine (Overfilled",
+            "category": "Operational Failures",
+            "alarms": [
+              {
+                "name": "L01-DL01 OVERFILLED",
+                "desc": "INTERLAYER MAGAZINE IS OVERFILLED. REMOVE PRODUCTS TO RESUME OPERATION.",
+                "value": "DL",
+                "priority": "Fault",
+                "deleted": false,
+                "category": "Operational Failures",
+                "subCategory": "Sequence Interruption",
+                "subSubCategory": "Interlayer Magazine (Overfilled)"
+              }
+            ]
+          }
+        ]
+      }
+    },
     "commonAlarms": [],
     "customEquipment": [],
     "customProjectAlarms": [],
