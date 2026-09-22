@@ -349,6 +349,7 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
     <div style="display:flex;gap:6px;margin-top:8px">
       <button class="btn btn-primary" style="flex:1;padding:6px 8px;font-size:11px" onclick="saveCurrentProject()">💾 Save</button>
       <button class="btn btn-ghost" style="padding:6px 8px;font-size:11px" onclick="returnToProjectsHome()" title="Back to Projects">📁</button>
+      <button class="btn btn-ghost" style="padding:6px 8px;font-size:11px;color:var(--red)" onclick="deleteCurrentProject()" title="Delete this project">🗑</button>
     </div>
     <div id="project-save-status" style="display:none;font-size:10px;margin-top:6px;text-align:center"></div>
   </div>
@@ -3788,8 +3789,9 @@ function renderProjectsGrid(projects) {
   grid.innerHTML = filtered.map(p => {
     const date = p.savedAt ? new Date(p.savedAt).toLocaleDateString(undefined, {year:'numeric',month:'short',day:'numeric'}) : '—';
     return `
-    <div class="ph-card" onclick="openProject('${p.owner.replace(/'/g,"\\'")}','${p.name.replace(/'/g,"\\'")}')">
-      <div class="ph-card-name">${p.name}</div>
+    <div class="ph-card" style="position:relative" onclick="openProject('${p.owner.replace(/'/g,"\\'")}','${p.name.replace(/'/g,"\\'")}')">
+      <button class="btn btn-ghost" title="Delete project" style="position:absolute;top:14px;right:14px;padding:4px 8px;font-size:12px;color:var(--red)" onclick="event.stopPropagation();deleteProject('${p.owner.replace(/'/g,"\\'")}','${p.name.replace(/'/g,"\\'")}','${p.path.replace(/'/g,"\\'")}')">🗑</button>
+      <div class="ph-card-name" style="padding-right:26px">${p.name}</div>
       <div class="ph-card-client">${p.client || '<span class="dim">No client set</span>'}</div>
       <div class="ph-card-meta">
         <span>👤 ${p.owner}</span>
@@ -3797,6 +3799,33 @@ function renderProjectsGrid(projects) {
       </div>
     </div>`;
   }).join('');
+}
+
+// Deleting never truly removes a project — it's moved to Deleted/{owner}/
+// with a timestamp suffix (so re-deleting a same-named project later can't
+// collide with an earlier one) so anything can be recovered from the repo
+// directly if needed.
+async function deleteProject(owner, name, path) {
+  if (!confirm(`Delete "${name}"?\n\nThis moves it out of the active Projects list into a Deleted archive — it isn't permanently erased, but it won't show up here anymore.`)) return;
+  try {
+    const content = await readFileFromGitHub(path);
+    const timestamp = new Date().toISOString().replace(/[:.]/g,'-');
+    const safeOwner = owner.replace(/[^a-zA-Z0-9_-]+/g, '-');
+    const safeName = name.trim().replace(/[^a-zA-Z0-9_-]+/g, '-');
+    const deletedPath = `Deleted/${safeOwner}/${safeName}_${timestamp}.json`;
+    await writeFileToGitHub(deletedPath, content, `Delete project ${name}`);
+    await deleteFileFromGitHub(path, `Delete project ${name}`);
+    if (currentProject && currentProject.path === path) { currentProject = null; }
+    await loadProjectsHomeList();
+  } catch (err) {
+    alert('Could not delete this project: ' + err.message);
+  }
+}
+async function deleteCurrentProject() {
+  if (!currentProject) return;
+  const { owner, name, path } = currentProject;
+  await deleteProject(owner, name, path);
+  if (!currentProject) returnToProjectsHome();
 }
 
 async function createNewProject() {
