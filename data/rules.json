@@ -1,0 +1,7 @@
+{
+  "iiotUnitPrice": 2000,
+  "iiotMarginPct": 45,
+  "factoryLaborRate": 120,
+  "defaultMargin": 55,
+  "defaultClientBudget": 200000
+}
