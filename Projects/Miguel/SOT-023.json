@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "savedAt": "2026-09-22T06:00:59.813Z",
+  "savedAt": "2026-09-22T06:01:40.928Z",
   "fields": {
     "g-name": "",
     "g-country": "",
@@ -1494,8 +1494,8 @@
     "g-archive": "Yes",
     "g-erp": "No",
     "g-alarm": "No",
-    "iiot-needed": "No",
-    "iiot-panels": ""
+    "iiot-needed": "Yes",
+    "iiot-panels": "4"
   },
   "equipment": {
     "technica": [],
