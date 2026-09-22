@@ -1697,9 +1697,27 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
   </div>
 
   <div class="card">
-    <div class="card-head">Electrical Cabinet</div>
+    <div class="card-head">Electrical Cabinet — Factory Labor Rate</div>
     <div class="note" style="margin-top:0;margin-bottom:14px">Used to price factory assembly hours in the Bill of Materials.</div>
     <div class="fg" style="max-width:240px"><label class="fl">Factory Labor Rate ($ / hour)</label><input type="number" id="rule-factory-rate" min="0" step="1" oninput="onRuleInput()"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Electrical Cabinet — Factory Consumables &amp; Component Prices</div>
+    <div class="note" style="margin-top:0;margin-bottom:14px">Cabling, glands, and small components priced into every Bill of Materials. CE and UL are priced separately since they're genuinely different parts.</div>
+    <div id="rules-cabinet-factory-table"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Electrical Cabinet — Panels Pricing</div>
+    <div class="note" style="margin-top:0;margin-bottom:14px">Base price per panel and the surcharge for each extra door, by brand and material.</div>
+    <div id="rules-cabinet-panels-table"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Electrical Cabinet — Design &amp; Testing Matrix</div>
+    <div class="note" style="margin-top:0;margin-bottom:14px">Engineering design cost and per-SKU testing cost, by application type and complexity level.</div>
+    <div id="rules-cabinet-designtesting-table"></div>
   </div>
 
   <div class="card">
@@ -2726,17 +2744,36 @@ ensureCustomersLoaded();
 // ── Business Rules (data/rules.json) ──────────────────────────────
 // Defaults here match the values that used to be hardcoded constants —
 // loading is purely additive until an admin actually changes something.
+// cabinetFactory / cabinetPanels / cabinetDesignTesting start undefined and
+// get seeded from cabinet-costing.json's own defaults (see
+// initCabinetRuleDefaults) — that catalog is the source of truth for the
+// starting values, but once an admin saves an edit here, this object (and
+// what's persisted in rules.json) takes over from the catalog entirely.
 let businessRules = {
   iiotUnitPrice: 2000, iiotMarginPct: 45,
   factoryLaborRate: 120,
   defaultMargin: 55,
   defaultClientBudget: 200000,
+  cabinetFactory: null,
+  cabinetPanels: null,
+  cabinetDesignTesting: null,
 };
+// Called after either cabinet-costing.json or rules.json finishes loading
+// (order isn't guaranteed) — fills in the three cabinet rule groups from the
+// catalog's own numbers, but only if nothing (i.e. no saved admin edit) has
+// already claimed that slot.
+function initCabinetRuleDefaults() {
+  if (typeof cabinetCosting === 'undefined' || !cabinetCosting) return;
+  if (!businessRules.cabinetFactory) businessRules.cabinetFactory = JSON.parse(JSON.stringify(cabinetCosting.factory));
+  if (!businessRules.cabinetPanels) businessRules.cabinetPanels = JSON.parse(JSON.stringify(cabinetCosting.panelsFormula));
+  if (!businessRules.cabinetDesignTesting) businessRules.cabinetDesignTesting = JSON.parse(JSON.stringify(cabinetCosting.designTestingMatrix));
+}
 let rulesLoadPromise = null;
 function ensureRulesLoaded() {
   if (rulesLoadPromise) return rulesLoadPromise;
   rulesLoadPromise = fetch('data/rules.json').then(r => r.ok ? r.json() : null).then(data => {
     if (data) Object.assign(businessRules, data);
+    initCabinetRuleDefaults();
     if (typeof recalcAll === 'function') recalcAll();
     if (typeof calcCabinetPage === 'function') calcCabinetPage();
     if (typeof renderRulesPage === 'function') renderRulesPage();
@@ -2746,6 +2783,91 @@ function ensureRulesLoaded() {
 ensureRulesLoaded();
 
 // ── Rules page: render, live-edit, save ────────────────────────────
+// ── Generic nested-path get/set, used by the Cabinet Factory table ──
+function getPath(obj, path) { return path.reduce((o,k) => (o == null ? o : o[k]), obj); }
+function setPath(obj, path, val) {
+  let o = obj;
+  for (let i = 0; i < path.length - 1; i++) o = o[path[i]];
+  o[path[path.length-1]] = val;
+}
+const CABINET_FACTORY_FIELDS = [
+  { label: 'Cable 4G2.5 — CE', path: ['cablePrice','4G2.5','CE'] },
+  { label: 'Cable 4G2.5 — UL', path: ['cablePrice','4G2.5','UL'] },
+  { label: 'Cable 4G4 — CE', path: ['cablePrice','4G4','CE'] },
+  { label: 'Cable 4G4 — UL', path: ['cablePrice','4G4','UL'] },
+  { label: 'Internal Cable 0.5mm — CE', path: ['internalCablePrice','0.5mm','CE'] },
+  { label: 'Internal Cable 0.5mm — UL', path: ['internalCablePrice','0.5mm','UL'] },
+  { label: 'Internal Cable 2.5mm — CE', path: ['internalCablePrice','2.5mm','CE'] },
+  { label: 'Internal Cable 2.5mm — UL', path: ['internalCablePrice','2.5mm','UL'] },
+  { label: 'Internal Cable 6mm — CE', path: ['internalCablePrice','6mm','CE'] },
+  { label: 'Internal Cable 6mm — UL', path: ['internalCablePrice','6mm','UL'] },
+  { label: 'Internal Cable 25mm — CE', path: ['internalCablePrice','25mm','CE'] },
+  { label: 'Internal Cable 25mm — UL', path: ['internalCablePrice','25mm','UL'] },
+  { label: 'Rail Omega — CE', path: ['railOmegaPrice','CE'] },
+  { label: 'Rail Omega — UL', path: ['railOmegaPrice','UL'] },
+  { label: 'Cache Cable — CE', path: ['cacheCablePrice','CE'] },
+  { label: 'Cache Cable — UL', path: ['cacheCablePrice','UL'] },
+  { label: 'Junction — CE', path: ['junctionPrice','CE'] },
+  { label: 'Junction — UL', path: ['junctionPrice','UL'] },
+  { label: 'Fuse — CE', path: ['fusePrice','CE'] },
+  { label: 'Fuse — UL', path: ['fusePrice','UL'] },
+  { label: 'Cable Tie (Detectable)', path: ['cableTieDetectablePrice'] },
+  { label: 'Numbering — CE', path: ['numberingPrice','CE'] },
+  { label: 'Numbering — UL', path: ['numberingPrice','UL'] },
+  { label: 'Control Cable 25x0.75', path: ['controlCable2575Price'] },
+  { label: 'Ethernet Cable', path: ['ethernetCablePrice'] },
+  { label: 'Vacuum Switch', path: ['vacuumSwitchPrice'] },
+  { label: 'Communication Module', path: ['commModulePrice'] },
+  { label: 'Gland — Plastic', path: ['glandPrice','Plastic'] },
+  { label: 'Gland — Stainless', path: ['glandPrice','Stainless'] },
+  { label: 'Gland — Flexible with plastic', path: ['glandPrice','Flexible with plastic'] },
+  { label: 'Door Cost — Two Doors (hours)', path: ['doorCost','twoDoors'] },
+  { label: 'Door Cost — One Door (hours)', path: ['doorCost','oneDoor'] },
+];
+function renderCabinetFactoryTable() {
+  const cont = document.getElementById('rules-cabinet-factory-table');
+  if (!cont || !businessRules.cabinetFactory) return;
+  cont.innerHTML = `<div class="tbl-wrap"><table><thead><tr><th>Item</th><th>Price ($)</th></tr></thead><tbody>
+    ${CABINET_FACTORY_FIELDS.map((f,i) => `<tr><td>${f.label}</td><td><input class="ein" type="number" step="0.01" id="rulef-${i}" value="${getPath(businessRules.cabinetFactory, f.path)}" onchange="onCabinetFactoryInput(${i})"></td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+function onCabinetFactoryInput(i) {
+  const f = CABINET_FACTORY_FIELDS[i];
+  const v = parseFloat(document.getElementById('rulef-'+i)?.value);
+  if (!isNaN(v)) setPath(businessRules.cabinetFactory, f.path, v);
+  if (typeof calcCabinetPage === 'function') calcCabinetPage();
+}
+function renderCabinetPanelsTable() {
+  const cont = document.getElementById('rules-cabinet-panels-table');
+  if (!cont || !businessRules.cabinetPanels) return;
+  const keys = Object.keys(businessRules.cabinetPanels);
+  cont.innerHTML = `<div class="tbl-wrap"><table><thead><tr><th>Brand / Material</th><th>Base Price ($)</th><th>Extra Door Price ($)</th></tr></thead><tbody>
+    ${keys.map(k => { const v = businessRules.cabinetPanels[k]; return `<tr><td>${k.replace('|',' — ')}</td>
+      <td><input class="ein" type="number" step="0.01" value="${v.basePrice}" onchange="onCabinetPanelsInput('${k.replace(/'/g,"\\'")}','basePrice',this.value)"></td>
+      <td><input class="ein" type="number" step="0.01" value="${v.extraDoorPrice}" onchange="onCabinetPanelsInput('${k.replace(/'/g,"\\'")}','extraDoorPrice',this.value)"></td></tr>`; }).join('')}
+  </tbody></table></div>`;
+}
+function onCabinetPanelsInput(key, field, val) {
+  const v = parseFloat(val);
+  if (!isNaN(v)) businessRules.cabinetPanels[key][field] = v;
+  if (typeof calcCabinetPage === 'function') calcCabinetPage();
+}
+function renderCabinetDesignTestingTable() {
+  const cont = document.getElementById('rules-cabinet-designtesting-table');
+  if (!cont || !businessRules.cabinetDesignTesting) return;
+  cont.innerHTML = `<div class="tbl-wrap"><table><thead><tr><th>Application Type</th><th>Complexity</th><th>Design ($)</th><th>Testing — First SKU ($)</th><th>Testing — Each Additional SKU ($)</th></tr></thead><tbody>
+    ${businessRules.cabinetDesignTesting.map((r,i) => `<tr><td>${r.type}</td><td>${r.level}</td>
+      <td><input class="ein" type="number" step="1" value="${r.design}" onchange="onCabinetDesignTestingInput(${i},'design',this.value)"></td>
+      <td><input class="ein" type="number" step="1" value="${r.costFirstSku}" onchange="onCabinetDesignTestingInput(${i},'costFirstSku',this.value)"></td>
+      <td><input class="ein" type="number" step="1" value="${r.additionalSku}" onchange="onCabinetDesignTestingInput(${i},'additionalSku',this.value)"></td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+function onCabinetDesignTestingInput(i, field, val) {
+  const v = parseFloat(val);
+  if (!isNaN(v)) businessRules.cabinetDesignTesting[i][field] = v;
+  if (typeof calcCabinetPage === 'function') calcCabinetPage();
+}
+
 function renderRulesPage() {
   const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
   setVal('rule-iiot-price', businessRules.iiotUnitPrice);
@@ -2755,6 +2877,9 @@ function renderRulesPage() {
   setVal('rule-default-budget', businessRules.defaultClientBudget);
   const costEl = document.getElementById('rule-iiot-cost-display');
   if (costEl) costEl.value = fmt(IIOT_UNIT_COST());
+  renderCabinetFactoryTable();
+  renderCabinetPanelsTable();
+  renderCabinetDesignTestingTable();
 }
 // Rules take effect immediately as an admin edits them (same pattern as
 // every other live-calculating page in the app) — "Save to Cloud" persists
@@ -4316,6 +4441,7 @@ async function loadCabinetData() {
     cabinetCosting = await costRes.json();
     cabinetDisambig = buildDisambiguationMap(cabinetCatalog);
     cabinetDataError = null;
+    if (typeof initCabinetRuleDefaults === 'function') initCabinetRuleDefaults();
   } catch (e) {
     cabinetDataError = e.message || String(e);
     console.error('Failed to load electrical cabinet data:', e);
@@ -4709,12 +4835,14 @@ function calcCabinet(inp, catalog, costingData) {
     + 3    * opPanelQty;
   const factoryBaseHours = Math.ceil(factoryChecklistHours / 8);
 
-  const factoryHours = numberOfPanels*costingData.factory.doorCost.twoDoors
-    + Math.ceil(Math.max(0, extraDoorCalc - numberOfPanels*10)/10)*costingData.factory.doorCost.oneDoor
+  const cabRules = businessRules.cabinetFactory || costingData.factory;
+  const factoryHours = numberOfPanels*cabRules.doorCost.twoDoors
+    + Math.ceil(Math.max(0, extraDoorCalc - numberOfPanels*10)/10)*cabRules.doorCost.oneDoor
     + factoryBaseHours;
-  const factoryCost = factoryHours * (typeof businessRules !== 'undefined' ? businessRules.factoryLaborRate : costingData.factory.factoryDayCostPerHour);
+  const factoryCost = factoryHours * businessRules.factoryLaborRate;
 
-  const costRow = costingData.designTestingMatrix.find(r => r.type===inp.application && r.level===inp.complexity);
+  const designTestingRows = businessRules.cabinetDesignTesting || costingData.designTestingMatrix;
+  const costRow = designTestingRows.find(r => r.type===inp.application && r.level===inp.complexity);
   const designCostBase = costRow ? costRow.design : 0;
   const testingCost = costRow ? (costRow.costFirstSku + costRow.additionalSku*(numSkus-1)) : 0;
   const design = designCostBase + 90*opPanelQty;
@@ -4793,7 +4921,7 @@ function calcCabinet(inp, catalog, costingData) {
   // incomplete read of the formula chain — the total genuinely scales with
   // panel count, it doesn't cancel out to a constant.
   const panelKey = panel ? `${panel.brand}|${panel.category}` : null;
-  const panelFormula = panelKey ? costingData.panelsFormula[panelKey] : null;
+  const panelFormula = panelKey ? (businessRules.cabinetPanels || costingData.panelsFormula)[panelKey] : null;
   const extraDoorQty = Math.ceil(Math.max(0, extraDoorCalc - numberOfPanels*10)/10);
   const panelBaseRef = panel ? getReferencePrice(dispName('panels', panel), panelFormula ? panelFormula.basePrice : (panel.price||0)) : 0;
   const panelLiveCatalogPrice = panelFormula ? (numberOfPanels*panelBaseRef + extraDoorQty*panelFormula.extraDoorPrice) : 0;
@@ -4808,7 +4936,7 @@ function calcCabinet(inp, catalog, costingData) {
   addLine('Sensors','Barcode Scanner 2D basic','scanner2dBasic',eligScanner2dBasic,scanner2dBasicItem,int(inp.scanner2dBasic),scanner2dBasicItem?.price||0);
   addLine('Sensors','Barcode Scanner 2D Advance','scanner2dAdv',eligScanner2dAdv,scanner2dAdvItem,int(inp.scanner2dAdvanced),scanner2dAdvItem?.price||0);
   addLine('Sensors','Camera Scanner 3D','scanner3d',eligScanner3d,scanner3dItem,int(inp.scanner3d),scanner3dItem?.price||0);
-  addLine('Sensors','Vacuum Switches',null,null,{name:'Vacuum Switches'},int(inp.vacuumSwitches),costingData.factory.vacuumSwitchPrice);
+  addLine('Sensors','Vacuum Switches',null,null,{name:'Vacuum Switches'},int(inp.vacuumSwitches),cabRules.vacuumSwitchPrice);
 
   addLine('Safety','Light Barrier - hands','lbBody',eligLbBody,lbBody,lbHandsN,lbBody?.price||0);
   addLine('Safety','Light Barrier - Finger','lbHands',eligLbHands,lbHandsItem,lbFingerN,lbHandsItem?.price||0);
@@ -4820,16 +4948,16 @@ function calcCabinet(inp, catalog, costingData) {
   const cableStd = inp.standard;
   const jbRunSpacing = layoutLength/(numberOfJunctionBox+1);
   const controlCableQty = numberOfJunctionBox*5 + jbRunSpacing*(numberOfJunctionBox*(numberOfJunctionBox+1)/2);
-  addLine('Cables',"Cables 4G2.5",null,null,{name:'4G2.5'},cable4G25Total,costingData.factory.cablePrice['4G2.5'][cableStd]);
-  addLine('Cables',"Cables 4G4",null,null,{name:'4G4'},cable4G4Total,costingData.factory.cablePrice['4G4'][cableStd]);
-  addLine('Cables',"Control Cable 25x0.75",null,null,{name:'Control Cable 25x0.75'},controlCableQty,costingData.factory.controlCable2575Price);
-  addLine('Cables',"Ethernet",null,null,{name:'Ethernet'},ethernetDecTotal,costingData.factory.ethernetCablePrice);
+  addLine('Cables',"Cables 4G2.5",null,null,{name:'4G2.5'},cable4G25Total,cabRules.cablePrice['4G2.5'][cableStd]);
+  addLine('Cables',"Cables 4G4",null,null,{name:'4G4'},cable4G4Total,cabRules.cablePrice['4G4'][cableStd]);
+  addLine('Cables',"Control Cable 25x0.75",null,null,{name:'Control Cable 25x0.75'},controlCableQty,cabRules.controlCable2575Price);
+  addLine('Cables',"Ethernet",null,null,{name:'Ethernet'},ethernetDecTotal,cabRules.ethernetCablePrice);
   addLine('Glands',inp.glandsType,null,null,{name:inp.glandsType},
     totalCentMotors*4+(int(inp.dec075)+int(inp.dec15)+int(inp.dec22))*4+(numberOfPDBs*2+numberOfPDBs*7+numberOfPDBs*2)+(numberOfJunctionBox*2+numberOfJunctionBox*30),
-    costingData.factory.glandPrice[inp.glandsType]);
+    cabRules.glandPrice[inp.glandsType]);
 
   addLine('Operator Panel','Operator Panel',null,null,{name:'Operator Panel SS With HMI'},opPanelQty,2940);
-  addLine('Communication Module','Remote IO',null,null,{name:'SIG Communication Module'},numRobots+Math.ceil(int(inp.vacuumSwitches)/8),costingData.factory.commModulePrice);
+  addLine('Communication Module','Remote IO',null,null,{name:'SIG Communication Module'},numRobots+Math.ceil(int(inp.vacuumSwitches)/8),cabRules.commModulePrice);
 
   // Special Items: fully manual entries, not tied to any catalog family. The
   // entered price is used directly as the reference price (skipLookup=true) —
@@ -4843,7 +4971,7 @@ function calcCabinet(inp, catalog, costingData) {
 
   const materialFromBom = bom.reduce((s,l) => s+l.total, 0);
   const isUL = inp.standard === 'UL';
-  const factory = costingData.factory;
+  const factory = businessRules.cabinetFactory || costingData.factory;
   const allSensorSafetyCount = int(inp.photoSensors)+int(inp.transparentSensors)+int(inp.proximitySensors)+int(inp.distanceSensors)
     +int(inp.scanner2dBasic)+int(inp.scanner2dAdvanced)+int(inp.scanner3d)+int(inp.actuatorsMono)+int(inp.actuatorsBi)
     +lbHandsN+lbFingerN+eStopButtons+int(inp.eStopRopes)+int(inp.guardSwitch)+int(inp.laserScanner);
