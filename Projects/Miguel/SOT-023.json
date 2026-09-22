@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "savedAt": "2026-09-22T06:01:40.928Z",
+  "savedAt": "2026-09-22T06:14:50.172Z",
   "fields": {
-    "g-name": "",
-    "g-country": "",
+    "g-name": "Sohat - Lebanon. Perrier Vittel Group N",
+    "g-country": "LBN",
     "g-ref": "SOT-023",
-    "g-loc": "",
+    "g-loc": "Beirut, Lebanon",
     "g-currency": "USD",
     "strat-category": "",
     "strat-sector": "",
@@ -2080,7 +2080,28 @@
     "commonAlarms": [],
     "customEquipment": [],
     "customProjectAlarms": [],
-    "wizardVals": null
+    "wizardVals": {
+      "insightechBatt": 6,
+      "insightechUps": 6,
+      "insightechUpsBuffer": 6,
+      "robotPanels": 0,
+      "robotBattPerPanel": 6,
+      "eBattPerUnit": 6,
+      "eUpsPerUnit": 6,
+      "eUpsBufferPerUnit": 6,
+      "eTempSensors": 10,
+      "eGuardSwitches": 10,
+      "eLightBarriers": 20,
+      "eValves": 1,
+      "lBattPerUnit": 6,
+      "lUpsPerUnit": 6,
+      "lTempSensors": 10,
+      "lPneumatic": 10,
+      "lEStop": 5,
+      "lERope": 20,
+      "lLightBarriers": 20,
+      "zoneLines": 10
+    }
   },
   "projectName": "SOT-023"
 }
