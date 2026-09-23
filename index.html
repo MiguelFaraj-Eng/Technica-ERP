@@ -1727,6 +1727,36 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
   </div>
 
   <div class="card">
+    <div class="card-head">Electrical Cabinet — Conditional Rules</div>
+    <div class="note" style="margin-top:0;margin-bottom:14px">The actual "if this, then that" decisions the Configurator makes — not formula weights, but branching logic. Each one below still does exactly what it did before; these controls just make the condition itself visible and changeable.</div>
+
+    <div class="fg"><label class="fl">Does Distributed topology always require a Safety PLC?</label>
+      <select id="rulec-distsafety" onchange="onCabinetConditionInput('distributedRequiresSafetyPlc', this.value === 'Yes')"><option value="Yes">Yes</option><option value="No">No</option></select>
+      <div class="note" style="margin-top:6px">If No, Distributed topology only requires Safety PLC when the safety-zones threshold above is exceeded.</div>
+    </div>
+
+    <div class="fg" style="margin-top:16px"><label class="fl">PLC model with built-in I/O (gets the DI/DQ offset above)</label>
+      <input type="text" id="rulec-s71200" oninput="onCabinetConditionInput('s71200TriggerModel', this.value)">
+      <div class="note" style="margin-top:6px">Must exactly match a PLC name in the catalog. Clear this field to disable the built-in-I/O reduction entirely.</div>
+    </div>
+
+    <div class="fg" style="margin-top:16px"><label class="fl">Drive brand that needs extra unmanaged switches (Centralized topology)</label>
+      <input type="text" id="rulec-swbrand" oninput="onCabinetConditionInput('unmanagedSwitchTriggerBrand', this.value)">
+      <div class="note" style="margin-top:6px">Must exactly match a brand name (e.g. "Allen Bradley"). Clear this field to disable the extra-switch rule entirely.</div>
+    </div>
+
+    <div class="g2" style="margin-top:16px">
+      <div class="fg"><label class="fl">Power Supplies needed — Centralized topology</label><input type="number" id="rulec-psucent" min="0" step="1" onchange="onCabinetConditionInput('powerSupplyCentralized', parseFloat(this.value)||0)"></div>
+      <div class="fg"><label class="fl">Power Supplies needed — Distributed topology</label><input type="number" id="rulec-psudist" min="0" step="1" onchange="onCabinetConditionInput('powerSupplyDistributed', parseFloat(this.value)||0)"></div>
+    </div>
+
+    <div class="fg" style="margin-top:16px"><label class="fl">For UL standard, internal cabling counts toward</label>
+      <select id="rulec-ulcable" onchange="onCabinetConditionInput('ulInternalCablingCountsAsMaterial', this.value === 'Material')"><option value="Material">Material (customer BOM)</option><option value="Factory Material">Factory Material (internal cost)</option></select>
+      <div class="note" style="margin-top:6px">For CE standard, it always counts the other way — this is a single either/or switch, not two independent settings.</div>
+    </div>
+  </div>
+
+  <div class="card">
     <div class="card-head">Electrical Cabinet — Panel &amp; Enclosure Sizing</div>
     <div class="note" style="margin-top:0;margin-bottom:14px">How many panels are needed, and when an extra door gets added.</div>
     <div id="rules-cabinet-panelsizing-table"></div>
@@ -2799,6 +2829,18 @@ let businessRules = {
   cabinetFactory: null,
   cabinetPanels: null,
   cabinetDesignTesting: null,
+  // The genuine branching decisions — "if this, then that" — as opposed to
+  // cabinetLogic's numeric weights. Each represented with whatever control
+  // fits its actual shape: a toggle for yes/no decisions, a text field for
+  // "which brand/model triggers this," paired numbers for "different value
+  // per topology" — never a formula or code snippet.
+  cabinetConditions: {
+    distributedRequiresSafetyPlc: true,
+    s71200TriggerModel: 'SIMATIC S7-1200, CPU 1214C',
+    unmanagedSwitchTriggerBrand: 'Allen Bradley',
+    powerSupplyCentralized: 1, powerSupplyDistributed: 2,
+    ulInternalCablingCountsAsMaterial: true,
+  },
   cabinetLogic: {
     // Safety & I/O sizing
     safetyZonesThreshold: 1,
@@ -3056,6 +3098,21 @@ function renderAllCabinetLogicTables() {
   renderCabinetLogicTable('cablingqty', 'rules-cabinet-cablingqty-table');
   renderCabinetLogicTable('fixedprices', 'rules-cabinet-fixedprices-table');
 }
+function onCabinetConditionInput(key, val) {
+  businessRules.cabinetConditions[key] = val;
+  if (typeof calcCabinetPage === 'function') calcCabinetPage();
+}
+function renderCabinetConditions() {
+  const CC = businessRules.cabinetConditions;
+  const setSel = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  setSel('rulec-distsafety', CC.distributedRequiresSafetyPlc ? 'Yes' : 'No');
+  setVal('rulec-s71200', CC.s71200TriggerModel);
+  setVal('rulec-swbrand', CC.unmanagedSwitchTriggerBrand);
+  setVal('rulec-psucent', CC.powerSupplyCentralized);
+  setVal('rulec-psudist', CC.powerSupplyDistributed);
+  setSel('rulec-ulcable', CC.ulInternalCablingCountsAsMaterial ? 'Material' : 'Factory Material');
+}
 
 function renderRulesPage() {
   const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
@@ -3070,6 +3127,7 @@ function renderRulesPage() {
   renderCabinetPanelsTable();
   renderCabinetDesignTestingTable();
   renderAllCabinetLogicTables();
+  renderCabinetConditions();
 }
 // Rules take effect immediately as an admin edits them (same pattern as
 // every other live-calculating page in the app) — "Save to Cloud" persists
@@ -4861,7 +4919,8 @@ function calcCabinet(inp, catalog, costingData) {
   const totalServos = int(inp.s075) + int(inp.s15) + int(inp.s22);
   const safetyZones = int(inp.safetyZones);
   const CL = businessRules.cabinetLogic;
-  const safetyPlcRequired = (safetyZones > CL.safetyZonesThreshold || topology === 'Distributed') ? true : (inp.safetyPlcRequired === 'Yes');
+  const CC = businessRules.cabinetConditions;
+  const safetyPlcRequired = (safetyZones > CL.safetyZonesThreshold || (CC.distributedRequiresSafetyPlc && topology === 'Distributed')) ? true : (inp.safetyPlcRequired === 'Yes');
   const numSkus = Math.max(1, int(inp.numSkus));
   const numRobots = int(inp.numRobots);
 
@@ -4874,7 +4933,7 @@ function calcCabinet(inp, catalog, costingData) {
     num(p.maxVfds) >= totalVFDs && num(p.maxRobots) >= numRobots
   );
   const plc = pickFromEligible('plc', eligPlc);
-  const isS71200 = plc && plc.name === 'SIMATIC S7-1200, CPU 1214C';
+  const isS71200 = plc && plc.name === CC.s71200TriggerModel;
 
   const eligIoSlave = catalog.plcIO.filter(io => io.brand === inp.plcBrand && io.category === 'Slave');
   const eligIoDI = catalog.plcIO.filter(io => io.brand === inp.plcBrand && io.category === 'DI');
@@ -4996,9 +5055,9 @@ function calcCabinet(inp, catalog, costingData) {
 
   const networkSwitchesManaged = 1;
   const networkSwitchesUnmanaged = 1
-    + ((inp.driveBrand==='Allen Bradley' && topology==='Centralised') ? Math.ceil((int(inp.m075NoBrake)+int(inp.m15NoBrake)+int(inp.m22NoBrake))/CL.unmanagedSwitchMotorsPerSwitch) : 0)
+    + ((inp.driveBrand===CC.unmanagedSwitchTriggerBrand && topology==='Centralised') ? Math.ceil((int(inp.m075NoBrake)+int(inp.m15NoBrake)+int(inp.m22NoBrake))/CL.unmanagedSwitchMotorsPerSwitch) : 0)
     + (topology==='Distributed' ? 1 : 0);
-  const powerSupplyNeeded = topology==='Centralised' ? 1 : 2;
+  const powerSupplyNeeded = topology==='Centralised' ? CC.powerSupplyCentralized : CC.powerSupplyDistributed;
   const numberOfJunctionBox = Math.max(0, Math.ceil(
     (int(inp.photoSensors)+int(inp.transparentSensors)+int(inp.proximitySensors)+int(inp.distanceSensors)+int(inp.actuatorsMono)
      + CL.outputRelayBiMultiplier*(int(inp.actuatorsBi)+lbHandsN+lbFingerN+int(inp.laserScanner))
@@ -5183,8 +5242,8 @@ function calcCabinet(inp, catalog, costingData) {
   const otherTotalCost = railOmegaQty*factory.railOmegaPrice[std] + cacheCableQty*factory.cacheCablePrice[std]
     + junctionsQty*factory.junctionPrice[std] + fusesQty*factory.fusePrice[std]
     + cableTiesQty*factory.cableTieDetectablePrice + numberingQty*factory.numberingPrice[std];
-  const factoryMaterial = (isUL ? 0 : cablesTotalCost) + otherTotalCost;
-  const material = materialFromBom + (isUL ? cablesTotalCost : 0);
+  const factoryMaterial = ((isUL && CC.ulInternalCablingCountsAsMaterial) ? 0 : cablesTotalCost) + otherTotalCost;
+  const material = materialFromBom + ((isUL && CC.ulInternalCablingCountsAsMaterial) ? cablesTotalCost : 0);
   const total = material + design + testingCost + factoryCost + factoryMaterial;
 
   return { plc, numberOfPanels, topology, bom, warnings, material, design, testingCost, factoryCost, factoryMaterial, total };
