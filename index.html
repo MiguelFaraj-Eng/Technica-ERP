@@ -1721,6 +1721,48 @@ body.role-procurement button[onclick="exportOffer()"] { display:none; }
   </div>
 
   <div class="card">
+    <div class="card-head">Electrical Cabinet — Safety &amp; I/O Sizing</div>
+    <div class="note" style="margin-top:0;margin-bottom:14px">How many I/O modules, safety relays, and switch capacity the Configurator decides you need.</div>
+    <div id="rules-cabinet-safetyio-table"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Electrical Cabinet — Panel &amp; Enclosure Sizing</div>
+    <div class="note" style="margin-top:0;margin-bottom:14px">How many panels are needed, and when an extra door gets added.</div>
+    <div id="rules-cabinet-panelsizing-table"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Electrical Cabinet — Factory Labor Weights</div>
+    <div class="note" style="margin-top:0;margin-bottom:14px">Hours-per-unit weights that build up the Factory Labor checklist, and how hours convert to days.</div>
+    <div id="rules-cabinet-laborweights-table"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Electrical Cabinet — Cable Routing</div>
+    <div class="note" style="margin-top:0;margin-bottom:14px">How cable run costs and PDB/decentralized motor groupings are calculated.</div>
+    <div id="rules-cabinet-cablerouting-table"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Electrical Cabinet — Junction Box &amp; Glanding</div>
+    <div class="note" style="margin-top:0;margin-bottom:14px">How many junction boxes and cable glands get added based on the equipment count.</div>
+    <div id="rules-cabinet-glanding-table"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Electrical Cabinet — Internal Cabling Quantities</div>
+    <div class="note" style="margin-top:0;margin-bottom:14px">How many meters/units of internal cable, rail, and consumables get added to Factory Material.</div>
+    <div id="rules-cabinet-cablingqty-table"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Electrical Cabinet — Fixed Component Prices</div>
+    <div class="note" style="margin-top:0;margin-bottom:14px">Prices set directly in the calculation rather than looked up from a catalog.</div>
+    <div id="rules-cabinet-fixedprices-table"></div>
+  </div>
+
+  <div class="card">
     <div class="card-head">Project Defaults</div>
     <div class="note" style="margin-top:0;margin-bottom:14px">Applied automatically when a new project is created. Existing projects keep whatever they already have — this doesn't reach back and change them.</div>
     <div class="g2">
@@ -2757,6 +2799,43 @@ let businessRules = {
   cabinetFactory: null,
   cabinetPanels: null,
   cabinetDesignTesting: null,
+  cabinetLogic: {
+    // Safety & I/O sizing
+    safetyZonesThreshold: 1,
+    outputRelayBase: 8, outputRelayPerMono: 8, outputRelayBiMultiplier: 2,
+    diPerModule: 8, dqPerModule: 8, aiPerModule: 4, fdiPerModule: 4, fdqPerModule: 4,
+    s71200DiOffset: 14, s71200DqOffset: 10,
+    slaveModuleCapacity: 25,
+    decentralizedDiOffset: 4, decentralizedDqOffset: 2,
+    opPanelDiPerUnit: 4, opPanelDqPerUnit: 4,
+    lightBarrierDiPerUnit: 2,
+    unmanagedSwitchMotorsPerSwitch: 8,
+    commModuleVacuumSwitchDivisor: 8,
+    // Panel & enclosure sizing
+    panelMotorCapacity: 30, servoWeight: 1.5, extraDoorThreshold: 10,
+    designCostPerOpPanel: 90,
+    // Factory Labor checklist weights (hours per unit)
+    laborSensorWeight: 1, laborActuatorWeight: 0.5, laborCentMotorWeight: 1.75,
+    laborDecMotorWeight: 0.5, laborPdbWeight: 4, laborJunctionBoxWeight: 3,
+    laborRobotCellFlat: 12, laborBaseFlat: 24, laborLightBarrierWeight: 2, laborOpPanelWeight: 3,
+    hoursPerDay: 8,
+    // Cable routing
+    cableRunBaseCost: 5, pdbGroupSize: 7, pdbMotorsPerBoard: 2, decentralizedGroupSize: 6,
+    // Junction box & glanding
+    junctionBoxDivisor: 30, junctionBoxOffset: 4,
+    glandsMotorFactor: 4, glandsDecentralizedFactor: 4,
+    glandsPdbFactorA: 2, glandsPdbFactorB: 7, glandsPdbFactorC: 2,
+    glandsJunctionFactorA: 2, glandsJunctionFactorB: 30,
+    // Internal cabling quantities
+    extraDoorCalcThreshold: 2,
+    internalCable05Low: 5, internalCable05High: 10,
+    internalCable25Divisor: 5, internalCable6Divisor: 90, internalCable25mFixed: 10,
+    railOmegaLow: 20, railOmegaHigh: 40, cacheCableLow: 20, cacheCableHigh: 40,
+    junctionsSensorFactor: 2, junctionsMotorFactor: 4, junctionsMultiplier: 1.2, fusesDivisor: 24,
+    cableTiesFactor: 20, cableTiesDivisor: 100, numberingFixedQty: 12,
+    // Fixed component prices (not in cabinet-costing.json's factory object)
+    powerSupplyPrice: 240, operatorPanelPrice: 2940, brakeSurcharge: 100,
+  },
 };
 // Called after either cabinet-costing.json or rules.json finishes loading
 // (order isn't guaranteed) — fills in the three cabinet rule groups from the
@@ -2868,6 +2947,116 @@ function onCabinetDesignTestingInput(i, field, val) {
   if (typeof calcCabinetPage === 'function') calcCabinetPage();
 }
 
+// ── Cabinet Logic — the ~50 named constants pulled out of calcCabinet()'s
+// formulas. Grouped into the same conceptual areas used when they were
+// cataloged, each with a plain-language label. Renders and edits generically
+// since businessRules.cabinetLogic is a single flat object.
+const CABINET_LOGIC_GROUPS = {
+  safetyio: [
+    { key: 'safetyZonesThreshold', label: 'Safety zones above which Safety PLC becomes required' },
+    { key: 'outputRelayBase', label: 'Output Relay — base quantity' },
+    { key: 'outputRelayPerMono', label: 'Output Relay — per mono-directional actuator' },
+    { key: 'outputRelayBiMultiplier', label: 'Bi-directional actuator multiplier (relays, DQ signals, glanding)' },
+    { key: 'diPerModule', label: 'Digital Inputs per I/O module' },
+    { key: 'dqPerModule', label: 'Digital Outputs per I/O module' },
+    { key: 'aiPerModule', label: 'Analog Inputs per I/O module' },
+    { key: 'fdiPerModule', label: 'Safety Digital Inputs (F-DI) per module' },
+    { key: 'fdqPerModule', label: 'Safety Digital Outputs (F-DQ) per module' },
+    { key: 's71200DiOffset', label: 'S7-1200 built-in DI (subtracted from DI needed)' },
+    { key: 's71200DqOffset', label: 'S7-1200 built-in DQ (subtracted from DQ needed)' },
+    { key: 'slaveModuleCapacity', label: 'I/O modules per Slave IM' },
+    { key: 'decentralizedDiOffset', label: 'DI reduction per decentralized motor' },
+    { key: 'decentralizedDqOffset', label: 'DQ reduction per decentralized motor' },
+    { key: 'opPanelDiPerUnit', label: 'DI added per Operator Panel' },
+    { key: 'opPanelDqPerUnit', label: 'DQ added per Operator Panel' },
+    { key: 'lightBarrierDiPerUnit', label: 'DI added per light barrier (hands/finger)' },
+    { key: 'unmanagedSwitchMotorsPerSwitch', label: 'Centralized motors per unmanaged switch (Allen Bradley)' },
+    { key: 'commModuleVacuumSwitchDivisor', label: 'Vacuum switches per Communication Module' },
+  ],
+  panelsizing: [
+    { key: 'panelMotorCapacity', label: 'Motor-equivalent capacity per panel' },
+    { key: 'servoWeight', label: 'Servo weight (motor-equivalents per servo)' },
+    { key: 'extraDoorThreshold', label: 'Motor-equivalents per extra door' },
+    { key: 'designCostPerOpPanel', label: 'Design cost added per Operator Panel ($)' },
+  ],
+  laborweights: [
+    { key: 'laborSensorWeight', label: 'Hours per sensor/scanner/guard switch/laser' },
+    { key: 'laborActuatorWeight', label: 'Hours per mono-directional actuator' },
+    { key: 'laborCentMotorWeight', label: 'Hours per centralized motor' },
+    { key: 'laborDecMotorWeight', label: 'Hours per decentralized motor' },
+    { key: 'laborPdbWeight', label: 'Hours per PDB' },
+    { key: 'laborJunctionBoxWeight', label: 'Hours per Junction Box' },
+    { key: 'laborRobotCellFlat', label: 'Flat hours added if application is Robot cell' },
+    { key: 'laborBaseFlat', label: 'Flat base hours (always added)' },
+    { key: 'laborLightBarrierWeight', label: 'Hours per light barrier (hands/finger)' },
+    { key: 'laborOpPanelWeight', label: 'Hours per Operator Panel' },
+    { key: 'hoursPerDay', label: 'Hours per day (converts checklist hours to days)' },
+  ],
+  cablerouting: [
+    { key: 'cableRunBaseCost', label: 'Base cost per cable run' },
+    { key: 'pdbMotorsPerBoard', label: 'MDR motors per PDB' },
+    { key: 'pdbGroupSize', label: 'PDBs per group (for cable run grouping)' },
+    { key: 'decentralizedGroupSize', label: 'Decentralized motors per group' },
+  ],
+  glanding: [
+    { key: 'junctionBoxDivisor', label: 'Divisor for Junction Box count formula' },
+    { key: 'junctionBoxOffset', label: 'Offset/multiplier in Junction Box &amp; safety device formula' },
+    { key: 'glandsMotorFactor', label: 'Glands per centralized motor' },
+    { key: 'glandsDecentralizedFactor', label: 'Glands per decentralized motor' },
+    { key: 'glandsPdbFactorA', label: 'Glands per PDB — factor A' },
+    { key: 'glandsPdbFactorB', label: 'Glands per PDB — factor B' },
+    { key: 'glandsPdbFactorC', label: 'Glands per PDB — factor C' },
+    { key: 'glandsJunctionFactorA', label: 'Glands per Junction Box — factor A' },
+    { key: 'glandsJunctionFactorB', label: 'Glands per Junction Box — factor B' },
+  ],
+  cablingqty: [
+    { key: 'extraDoorCalcThreshold', label: 'Motor-equivalent threshold for low/high cabling tiers' },
+    { key: 'internalCable05Low', label: '0.5mm cable qty — below threshold' },
+    { key: 'internalCable05High', label: '0.5mm cable qty — at/above threshold' },
+    { key: 'internalCable25Divisor', label: '2.5mm cable — centralized motors divisor' },
+    { key: 'internalCable6Divisor', label: '6mm cable — centralized motors divisor' },
+    { key: 'internalCable25mFixed', label: '25mm cable — fixed quantity' },
+    { key: 'railOmegaLow', label: 'Rail Omega qty — below threshold' },
+    { key: 'railOmegaHigh', label: 'Rail Omega qty — at/above threshold' },
+    { key: 'cacheCableLow', label: 'Cache Cable qty — below threshold' },
+    { key: 'cacheCableHigh', label: 'Cache Cable qty — at/above threshold' },
+    { key: 'junctionsSensorFactor', label: 'Junctions — sensor/safety device factor' },
+    { key: 'junctionsMotorFactor', label: 'Junctions — centralized motor factor' },
+    { key: 'junctionsMultiplier', label: 'Junctions — overall multiplier' },
+    { key: 'fusesDivisor', label: 'Junctions per fuse' },
+    { key: 'cableTiesFactor', label: 'Cable ties — length multiplier' },
+    { key: 'cableTiesDivisor', label: 'Cable ties — length divisor' },
+    { key: 'numberingFixedQty', label: 'Numbering — fixed quantity' },
+  ],
+  fixedprices: [
+    { key: 'powerSupplyPrice', label: 'Power Supply unit price ($)' },
+    { key: 'operatorPanelPrice', label: 'Operator Panel unit price ($)' },
+    { key: 'brakeSurcharge', label: 'Brake variant surcharge on VFD price ($)' },
+  ],
+};
+function renderCabinetLogicTable(groupKey, containerId) {
+  const cont = document.getElementById(containerId);
+  if (!cont || !businessRules.cabinetLogic) return;
+  const fields = CABINET_LOGIC_GROUPS[groupKey];
+  cont.innerHTML = `<div class="tbl-wrap"><table><thead><tr><th>Rule</th><th>Value</th></tr></thead><tbody>
+    ${fields.map(f => `<tr><td>${f.label}</td><td><input class="ein" type="number" step="0.01" value="${businessRules.cabinetLogic[f.key]}" onchange="onCabinetLogicInput('${f.key}',this.value)"></td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+function onCabinetLogicInput(key, val) {
+  const v = parseFloat(val);
+  if (!isNaN(v)) businessRules.cabinetLogic[key] = v;
+  if (typeof calcCabinetPage === 'function') calcCabinetPage();
+}
+function renderAllCabinetLogicTables() {
+  renderCabinetLogicTable('safetyio', 'rules-cabinet-safetyio-table');
+  renderCabinetLogicTable('panelsizing', 'rules-cabinet-panelsizing-table');
+  renderCabinetLogicTable('laborweights', 'rules-cabinet-laborweights-table');
+  renderCabinetLogicTable('cablerouting', 'rules-cabinet-cablerouting-table');
+  renderCabinetLogicTable('glanding', 'rules-cabinet-glanding-table');
+  renderCabinetLogicTable('cablingqty', 'rules-cabinet-cablingqty-table');
+  renderCabinetLogicTable('fixedprices', 'rules-cabinet-fixedprices-table');
+}
+
 function renderRulesPage() {
   const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
   setVal('rule-iiot-price', businessRules.iiotUnitPrice);
@@ -2880,6 +3069,7 @@ function renderRulesPage() {
   renderCabinetFactoryTable();
   renderCabinetPanelsTable();
   renderCabinetDesignTestingTable();
+  renderAllCabinetLogicTables();
 }
 // Rules take effect immediately as an admin edits them (same pattern as
 // every other live-calculating page in the app) — "Save to Cloud" persists
@@ -4670,7 +4860,8 @@ function calcCabinet(inp, catalog, costingData) {
     .reduce((s,k) => s + int(inp[k]), 0);
   const totalServos = int(inp.s075) + int(inp.s15) + int(inp.s22);
   const safetyZones = int(inp.safetyZones);
-  const safetyPlcRequired = (safetyZones > 1 || topology === 'Distributed') ? true : (inp.safetyPlcRequired === 'Yes');
+  const CL = businessRules.cabinetLogic;
+  const safetyPlcRequired = (safetyZones > CL.safetyZonesThreshold || topology === 'Distributed') ? true : (inp.safetyPlcRequired === 'Yes');
   const numSkus = Math.max(1, int(inp.numSkus));
   const numRobots = int(inp.numRobots);
 
@@ -4711,7 +4902,7 @@ function calcCabinet(inp, catalog, costingData) {
   // of trusting the static number, which silently misses that dependency.
   const powerDistKey = powerDist ? `${powerDist.brand}|${inp.standard}` : null;
   const powerDistItems = powerDistKey ? (costingData.powerDistBreakdown[powerDistKey] || []) : [];
-  const outputRelayQty = 8 + 8*(int(inp.actuatorsMono) + 2*int(inp.actuatorsBi));
+  const outputRelayQty = CL.outputRelayBase + CL.outputRelayPerMono*(int(inp.actuatorsMono) + CL.outputRelayBiMultiplier*int(inp.actuatorsBi));
   const powerDistLiveCatalogPrice = powerDistItems.reduce((s, it) => {
     const qty = it.qtyFormula === 'outputRelay' ? outputRelayQty : (it.qty ?? 1);
     return s + qty * it.price;
@@ -4761,7 +4952,7 @@ function calcCabinet(inp, catalog, costingData) {
         guardSwitchItem = pickFromEligible('guardSwitch', eligGuardSwitch), laserScannerItem = pickFromEligible('laserScanner', eligLaserScanner);
 
   const layoutLength = int(inp.layoutLength);
-  const cableRunCost = n2 => n2 === 0 ? 0 : (n2*5 + ((n2-1)*n2/2) * (layoutLength / Math.max(n2-1, 1)));
+  const cableRunCost = n2 => n2 === 0 ? 0 : (n2*CL.cableRunBaseCost + ((n2-1)*n2/2) * (layoutLength / Math.max(n2-1, 1)));
   const c21=cableRunCost(int(inp.m075NoBrake)), c22c=cableRunCost(int(inp.m15NoBrake)), c23=cableRunCost(int(inp.m22NoBrake));
   const c24=cableRunCost(int(inp.m075Brake)), c25=cableRunCost(int(inp.m15Brake)), c26=cableRunCost(int(inp.m22Brake));
   // PDB cable run (BackGround!C83/E83) — a cable run to each MDR power
@@ -4769,18 +4960,18 @@ function calcCabinet(inp, catalog, costingData) {
   // centralized motors (raw count, not grouped). This was entirely missing
   // before: numberOfPDBs is needed here, so it's computed early rather than
   // where it's used for other purposes later.
-  const numberOfPDBs = Math.ceil(int(inp.mdrMotors)/2/7);
+  const numberOfPDBs = Math.ceil(int(inp.mdrMotors)/CL.pdbMotorsPerBoard/CL.pdbGroupSize);
   const c83 = cableRunCost(numberOfPDBs);
   const cable4G25Total = c21+c22c+c23+c24+c25+c26+c83;
-  const decGroup = n2 => Math.ceil(n2/6);
+  const decGroup = n2 => Math.ceil(n2/CL.decentralizedGroupSize);
   const g31=decGroup(int(inp.dec075)), g32=decGroup(int(inp.dec15)), g33=decGroup(int(inp.dec22));
-  const decCableCost = g2 => g2===0 ? 0 : (g2*5 + (g2*(g2+1)/2)*(layoutLength/g2));
+  const decCableCost = g2 => g2===0 ? 0 : (g2*CL.cableRunBaseCost + (g2*(g2+1)/2)*(layoutLength/g2));
   const cable4G4Total = decCableCost(g31)+decCableCost(g32)+decCableCost(g33);
   const ethernetDecTotal = decCableCost(g31)+decCableCost(g32)+decCableCost(g33)+c83;
 
   const lbHandsN = int(inp.lbHands), lbFingerN = int(inp.lbFinger);
   const totalCentMotors = int(inp.m075NoBrake)+int(inp.m15NoBrake)+int(inp.m22NoBrake)+int(inp.m075Brake)+int(inp.m15Brake)+int(inp.m22Brake);
-  const numberOfPanels = Math.max(1, Math.ceil(((topology==='Centralised'?totalCentMotors:0) + 1.5*totalServos) / 30));
+  const numberOfPanels = Math.max(1, Math.ceil(((topology==='Centralised'?totalCentMotors:0) + CL.servoWeight*totalServos) / CL.panelMotorCapacity));
   const opPanelQty = int(inp.opPanelQty);
   const eStopButtons = int(inp.eStopButtons) + numberOfPanels + opPanelQty;
   const numberOfFDIFinal = lbHandsN + lbFingerN + eStopButtons + int(inp.eStopRopes) + int(inp.guardSwitch) + int(inp.laserScanner);
@@ -4788,32 +4979,32 @@ function calcCabinet(inp, catalog, costingData) {
 
   const numberOfDIFinal = Math.max(
     int(inp.photoSensors)+int(inp.transparentSensors)+int(inp.proximitySensors)
-    - (4*int(inp.dec075)+4*int(inp.dec15)+4*int(inp.dec22)) + 4*opPanelQty + 2*(lbHandsN+lbFingerN)
-    - (isS71200 ? 14 : 0), 0);
+    - (CL.decentralizedDiOffset*int(inp.dec075)+CL.decentralizedDiOffset*int(inp.dec15)+CL.decentralizedDiOffset*int(inp.dec22)) + CL.opPanelDiPerUnit*opPanelQty + CL.lightBarrierDiPerUnit*(lbHandsN+lbFingerN)
+    - (isS71200 ? CL.s71200DiOffset : 0), 0);
   const numberOfDQFinal = Math.max(
-    int(inp.actuatorsMono)+2*int(inp.actuatorsBi)
-    - (2*int(inp.dec075)+2*int(inp.dec15)+2*int(inp.dec22)) + 4*opPanelQty
-    - (isS71200 ? 10 : 0), 0);
+    int(inp.actuatorsMono)+CL.outputRelayBiMultiplier*int(inp.actuatorsBi)
+    - (CL.decentralizedDqOffset*int(inp.dec075)+CL.decentralizedDqOffset*int(inp.dec15)+CL.decentralizedDqOffset*int(inp.dec22)) + CL.opPanelDqPerUnit*opPanelQty
+    - (isS71200 ? CL.s71200DqOffset : 0), 0);
   const numberOfAI = int(inp.distanceSensors);
 
-  const diModulesNeeded = 1 + Math.ceil(numberOfDIFinal/8);
-  const dqModulesNeeded = 1 + Math.ceil(numberOfDQFinal/8);
-  const aiModulesNeeded = Math.ceil(numberOfAI/4);
-  const fdiModulesNeeded = Math.max(1, Math.ceil(numberOfFDIFinal/4));
-  const fdqModulesNeeded = Math.ceil(numberOfFDQ/4);
-  const slaveModulesNeeded = Math.ceil((diModulesNeeded+dqModulesNeeded+aiModulesNeeded+fdiModulesNeeded+fdqModulesNeeded)/25 + numberOfPanels - 1);
+  const diModulesNeeded = 1 + Math.ceil(numberOfDIFinal/CL.diPerModule);
+  const dqModulesNeeded = 1 + Math.ceil(numberOfDQFinal/CL.dqPerModule);
+  const aiModulesNeeded = Math.ceil(numberOfAI/CL.aiPerModule);
+  const fdiModulesNeeded = Math.max(1, Math.ceil(numberOfFDIFinal/CL.fdiPerModule));
+  const fdqModulesNeeded = Math.ceil(numberOfFDQ/CL.fdqPerModule);
+  const slaveModulesNeeded = Math.ceil((diModulesNeeded+dqModulesNeeded+aiModulesNeeded+fdiModulesNeeded+fdqModulesNeeded)/CL.slaveModuleCapacity + numberOfPanels - 1);
 
   const networkSwitchesManaged = 1;
   const networkSwitchesUnmanaged = 1
-    + ((inp.driveBrand==='Allen Bradley' && topology==='Centralised') ? Math.ceil((int(inp.m075NoBrake)+int(inp.m15NoBrake)+int(inp.m22NoBrake))/8) : 0)
+    + ((inp.driveBrand==='Allen Bradley' && topology==='Centralised') ? Math.ceil((int(inp.m075NoBrake)+int(inp.m15NoBrake)+int(inp.m22NoBrake))/CL.unmanagedSwitchMotorsPerSwitch) : 0)
     + (topology==='Distributed' ? 1 : 0);
   const powerSupplyNeeded = topology==='Centralised' ? 1 : 2;
   const numberOfJunctionBox = Math.max(0, Math.ceil(
     (int(inp.photoSensors)+int(inp.transparentSensors)+int(inp.proximitySensors)+int(inp.distanceSensors)+int(inp.actuatorsMono)
-     + 2*(int(inp.actuatorsBi)+lbHandsN+lbFingerN+int(inp.laserScanner))
-     + 4*(eStopButtons+int(inp.eStopRopes)+int(inp.guardSwitch)) - 4) / 30
+     + CL.outputRelayBiMultiplier*(int(inp.actuatorsBi)+lbHandsN+lbFingerN+int(inp.laserScanner))
+     + CL.junctionBoxOffset*(eStopButtons+int(inp.eStopRopes)+int(inp.guardSwitch)) - CL.junctionBoxOffset) / CL.junctionBoxDivisor
   ));
-  const extraDoorCalc = 1*totalCentMotors + 1.5*totalServos;
+  const extraDoorCalc = 1*totalCentMotors + CL.servoWeight*totalServos;
 
   // Factory Base "Days" figure — NOT a flat constant. The source is a
   // 10-category checklist (hours-per-unit x count-of-that-thing), summed and
@@ -4823,21 +5014,21 @@ function calcCabinet(inp, catalog, costingData) {
   // formula tied to Configurator inputs — verified cell-by-cell against the
   // source, same pattern as the Power Distribution and Panels fixes.
   const factoryChecklistHours =
-      1    * (int(inp.photoSensors)+int(inp.transparentSensors)+int(inp.proximitySensors)+int(inp.distanceSensors)+int(inp.scanner2dBasic)+int(inp.scanner2dAdvanced)+int(inp.scanner3d)+int(inp.guardSwitch)+int(inp.laserScanner))
-    + 0.5  * (int(inp.actuatorsMono) + 2*int(inp.actuatorsBi))
-    + 1.75 * totalCentMotors
-    + 0.5  * (int(inp.dec075)+int(inp.dec15)+int(inp.dec22))
-    + 4    * numberOfPDBs
-    + 3    * numberOfJunctionBox
-    + 12   * (inp.application === 'Robot cell' ? 1 : 0)
-    + 24   * 1
-    + 2    * (lbHandsN + lbFingerN)
-    + 3    * opPanelQty;
-  const factoryBaseHours = Math.ceil(factoryChecklistHours / 8);
+      CL.laborSensorWeight * (int(inp.photoSensors)+int(inp.transparentSensors)+int(inp.proximitySensors)+int(inp.distanceSensors)+int(inp.scanner2dBasic)+int(inp.scanner2dAdvanced)+int(inp.scanner3d)+int(inp.guardSwitch)+int(inp.laserScanner))
+    + CL.laborActuatorWeight * (int(inp.actuatorsMono) + CL.outputRelayBiMultiplier*int(inp.actuatorsBi))
+    + CL.laborCentMotorWeight * totalCentMotors
+    + CL.laborDecMotorWeight * (int(inp.dec075)+int(inp.dec15)+int(inp.dec22))
+    + CL.laborPdbWeight * numberOfPDBs
+    + CL.laborJunctionBoxWeight * numberOfJunctionBox
+    + CL.laborRobotCellFlat * (inp.application === 'Robot cell' ? 1 : 0)
+    + CL.laborBaseFlat * 1
+    + CL.laborLightBarrierWeight * (lbHandsN + lbFingerN)
+    + CL.laborOpPanelWeight * opPanelQty;
+  const factoryBaseHours = Math.ceil(factoryChecklistHours / CL.hoursPerDay);
 
   const cabRules = businessRules.cabinetFactory || costingData.factory;
   const factoryHours = numberOfPanels*cabRules.doorCost.twoDoors
-    + Math.ceil(Math.max(0, extraDoorCalc - numberOfPanels*10)/10)*cabRules.doorCost.oneDoor
+    + Math.ceil(Math.max(0, extraDoorCalc - numberOfPanels*CL.extraDoorThreshold)/CL.extraDoorThreshold)*cabRules.doorCost.oneDoor
     + factoryBaseHours;
   const factoryCost = factoryHours * businessRules.factoryLaborRate;
 
@@ -4845,7 +5036,7 @@ function calcCabinet(inp, catalog, costingData) {
   const costRow = designTestingRows.find(r => r.type===inp.application && r.level===inp.complexity);
   const designCostBase = costRow ? costRow.design : 0;
   const testingCost = costRow ? (costRow.costFirstSku + costRow.additionalSku*(numSkus-1)) : 0;
-  const design = designCostBase + 90*opPanelQty;
+  const design = designCostBase + CL.designCostPerOpPanel*opPanelQty;
 
   const SLOT_TO_FAMILY = {
     plc:'plc', ioSlave:'plcIO', ioDI:'plcIO', ioDQ:'plcIO', ioFDI:'plcIO', ioFDQ:'plcIO', ioAI:'plcIO',
@@ -4891,16 +5082,16 @@ function calcCabinet(inp, catalog, costingData) {
   addLine('Switches & Power','Network Switches Managed','swManaged',eligSwManaged,swManaged,networkSwitchesManaged,swManaged?.price||0);
   addLine('Switches & Power','Network Switches Unmanaged','swUnmanaged',eligSwUnmanaged,swUnmanaged,networkSwitchesUnmanaged,swUnmanaged?.price||0);
   addLine('Switches & Power','Power Distribution','powerDist',eligPowerDist,powerDist,numberOfPanels,powerDistLiveCatalogPrice);
-  addLine('Switches & Power','Power Supply',null,null,{name:'Power Supply'},powerSupplyNeeded,240);
+  addLine('Switches & Power','Power Supply',null,null,{name:'Power Supply'},powerSupplyNeeded,CL.powerSupplyPrice);
   addLine('Switches & Power','UPS','ups',eligUps,ups,(inp.ups==='Not Included'?0:1),ups?.price||0);
   addLine('Switches & Power','Ventilation','ventilation',eligVentilation,ventilation,numberOfPanels,ventilation?.price||0);
 
   addLine('Drives Without Brake','VFD 0.75KW - Centralized','vfdCent075',eligVfdCent075,vfdCent075,int(inp.m075NoBrake),vfdCent075?.price||0);
   addLine('Drives Without Brake','VFD 1.5KW - Centralized','vfdCent15',eligVfdCent15,vfdCent15,int(inp.m15NoBrake),vfdCent15?.price||0);
   addLine('Drives Without Brake','VFD 2.2KW - Centralized','vfdCent22',eligVfdCent22,vfdCent22,int(inp.m22NoBrake),vfdCent22?.price||0);
-  addLine('Drives With Brakes','VFD 0.75KW - Centralized','vfdCent075',eligVfdCent075,vfdCent075,int(inp.m075Brake),vfdCent075?.price||0,100);
-  addLine('Drives With Brakes','VFD 1.5KW - Centralized','vfdCent15',eligVfdCent15,vfdCent15,int(inp.m15Brake),vfdCent15?.price||0,100);
-  addLine('Drives With Brakes','VFD 2.2KW - Centralized','vfdCent22',eligVfdCent22,vfdCent22,int(inp.m22Brake),vfdCent22?.price||0,100);
+  addLine('Drives With Brakes','VFD 0.75KW - Centralized','vfdCent075',eligVfdCent075,vfdCent075,int(inp.m075Brake),vfdCent075?.price||0,CL.brakeSurcharge);
+  addLine('Drives With Brakes','VFD 1.5KW - Centralized','vfdCent15',eligVfdCent15,vfdCent15,int(inp.m15Brake),vfdCent15?.price||0,CL.brakeSurcharge);
+  addLine('Drives With Brakes','VFD 2.2KW - Centralized','vfdCent22',eligVfdCent22,vfdCent22,int(inp.m22Brake),vfdCent22?.price||0,CL.brakeSurcharge);
   addLine('Distributed Drives','VFD 0.75KW - Distributed','vfdDist075',eligVfdDist075,vfdDist075,int(inp.dec075),vfdDist075?.price||0);
   addLine('Distributed Drives','VFD 1.5KW - Distributed','vfdDist15',eligVfdDist15,vfdDist15,int(inp.dec15),vfdDist15?.price||0);
   addLine('Distributed Drives','VFD 2.2KW - Distributed','vfdDist22',eligVfdDist22,vfdDist22,int(inp.dec22),vfdDist22?.price||0);
@@ -4922,7 +5113,7 @@ function calcCabinet(inp, catalog, costingData) {
   // panel count, it doesn't cancel out to a constant.
   const panelKey = panel ? `${panel.brand}|${panel.category}` : null;
   const panelFormula = panelKey ? (businessRules.cabinetPanels || costingData.panelsFormula)[panelKey] : null;
-  const extraDoorQty = Math.ceil(Math.max(0, extraDoorCalc - numberOfPanels*10)/10);
+  const extraDoorQty = Math.ceil(Math.max(0, extraDoorCalc - numberOfPanels*CL.extraDoorThreshold)/CL.extraDoorThreshold);
   const panelBaseRef = panel ? getReferencePrice(dispName('panels', panel), panelFormula ? panelFormula.basePrice : (panel.price||0)) : 0;
   const panelLiveCatalogPrice = panelFormula ? (numberOfPanels*panelBaseRef + extraDoorQty*panelFormula.extraDoorPrice) : 0;
   addLine('Panels','Enclosures - Panel','panel',eligPanel,panel,1,panelLiveCatalogPrice,0,true);
@@ -4947,17 +5138,17 @@ function calcCabinet(inp, catalog, costingData) {
 
   const cableStd = inp.standard;
   const jbRunSpacing = layoutLength/(numberOfJunctionBox+1);
-  const controlCableQty = numberOfJunctionBox*5 + jbRunSpacing*(numberOfJunctionBox*(numberOfJunctionBox+1)/2);
+  const controlCableQty = numberOfJunctionBox*CL.cableRunBaseCost + jbRunSpacing*(numberOfJunctionBox*(numberOfJunctionBox+1)/2);
   addLine('Cables',"Cables 4G2.5",null,null,{name:'4G2.5'},cable4G25Total,cabRules.cablePrice['4G2.5'][cableStd]);
   addLine('Cables',"Cables 4G4",null,null,{name:'4G4'},cable4G4Total,cabRules.cablePrice['4G4'][cableStd]);
   addLine('Cables',"Control Cable 25x0.75",null,null,{name:'Control Cable 25x0.75'},controlCableQty,cabRules.controlCable2575Price);
   addLine('Cables',"Ethernet",null,null,{name:'Ethernet'},ethernetDecTotal,cabRules.ethernetCablePrice);
   addLine('Glands',inp.glandsType,null,null,{name:inp.glandsType},
-    totalCentMotors*4+(int(inp.dec075)+int(inp.dec15)+int(inp.dec22))*4+(numberOfPDBs*2+numberOfPDBs*7+numberOfPDBs*2)+(numberOfJunctionBox*2+numberOfJunctionBox*30),
+    totalCentMotors*CL.glandsMotorFactor+(int(inp.dec075)+int(inp.dec15)+int(inp.dec22))*CL.glandsDecentralizedFactor+(numberOfPDBs*CL.glandsPdbFactorA+numberOfPDBs*CL.glandsPdbFactorB+numberOfPDBs*CL.glandsPdbFactorC)+(numberOfJunctionBox*CL.glandsJunctionFactorA+numberOfJunctionBox*CL.glandsJunctionFactorB),
     cabRules.glandPrice[inp.glandsType]);
 
-  addLine('Operator Panel','Operator Panel',null,null,{name:'Operator Panel SS With HMI'},opPanelQty,2940);
-  addLine('Communication Module','Remote IO',null,null,{name:'SIG Communication Module'},numRobots+Math.ceil(int(inp.vacuumSwitches)/8),cabRules.commModulePrice);
+  addLine('Operator Panel','Operator Panel',null,null,{name:'Operator Panel SS With HMI'},opPanelQty,CL.operatorPanelPrice);
+  addLine('Communication Module','Remote IO',null,null,{name:'SIG Communication Module'},numRobots+Math.ceil(int(inp.vacuumSwitches)/CL.commModuleVacuumSwitchDivisor),cabRules.commModulePrice);
 
   // Special Items: fully manual entries, not tied to any catalog family. The
   // entered price is used directly as the reference price (skipLookup=true) —
@@ -4976,16 +5167,16 @@ function calcCabinet(inp, catalog, costingData) {
     +int(inp.scanner2dBasic)+int(inp.scanner2dAdvanced)+int(inp.scanner3d)+int(inp.actuatorsMono)+int(inp.actuatorsBi)
     +lbHandsN+lbFingerN+eStopButtons+int(inp.eStopRopes)+int(inp.guardSwitch)+int(inp.laserScanner);
 
-  const iCable05Qty = extraDoorCalc<2 ? 5 : 10;
-  const iCable25Qty = Math.ceil(totalCentMotors/5);
-  const iCable6Qty = totalCentMotors/90;
-  const iCable25mQty = 10;
-  const railOmegaQty = extraDoorCalc<2 ? 20 : 40;
-  const cacheCableQty = extraDoorCalc<2 ? 20 : 40;
-  const junctionsQty = Math.ceil((allSensorSafetyCount*2+totalCentMotors*4)*1.2);
-  const fusesQty = Math.ceil(junctionsQty/24);
-  const cableTiesQty = inp.cableTiesDetectable==='No' ? 0 : Math.ceil(int(inp.cableTiesLength)*20/100);
-  const numberingQty = 12;
+  const iCable05Qty = extraDoorCalc<CL.extraDoorCalcThreshold ? CL.internalCable05Low : CL.internalCable05High;
+  const iCable25Qty = Math.ceil(totalCentMotors/CL.internalCable25Divisor);
+  const iCable6Qty = totalCentMotors/CL.internalCable6Divisor;
+  const iCable25mQty = CL.internalCable25mFixed;
+  const railOmegaQty = extraDoorCalc<CL.extraDoorCalcThreshold ? CL.railOmegaLow : CL.railOmegaHigh;
+  const cacheCableQty = extraDoorCalc<CL.extraDoorCalcThreshold ? CL.cacheCableLow : CL.cacheCableHigh;
+  const junctionsQty = Math.ceil((allSensorSafetyCount*CL.junctionsSensorFactor+totalCentMotors*CL.junctionsMotorFactor)*CL.junctionsMultiplier);
+  const fusesQty = Math.ceil(junctionsQty/CL.fusesDivisor);
+  const cableTiesQty = inp.cableTiesDetectable==='No' ? 0 : Math.ceil(int(inp.cableTiesLength)*CL.cableTiesFactor/CL.cableTiesDivisor);
+  const numberingQty = CL.numberingFixedQty;
   const std = isUL ? 'UL' : 'CE';
   const cablesTotalCost = iCable05Qty*factory.internalCablePrice['0.5mm'][std] + iCable25Qty*factory.internalCablePrice['2.5mm'][std]
     + iCable6Qty*factory.internalCablePrice['6mm'][std] + iCable25mQty*factory.internalCablePrice['25mm'][std];
