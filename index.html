@@ -2751,6 +2751,25 @@ let USERS = {};
 let usersLoaded = false;
 let currentUser = null;
 
+// ── Password hashing (PBKDF2-SHA256 via the browser's built-in Web Crypto
+// API — no external library, works offline, same algorithm used to migrate
+// the existing plaintext passwords in data/users.json). Salt is stored
+// per-user as a random hex string; never store or compare raw passwords.
+const PBKDF2_ITERATIONS = 150000;
+function generateSalt() {
+  const arr = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(arr).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+async function hashPassword(password, salt) {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+  const hashBuffer = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt: enc.encode(salt), iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
+    keyMaterial, 256
+  );
+  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
 async function loadUsers() {
   try {
     const res = await fetch('data/users.json', {cache:'no-store'});
@@ -3159,14 +3178,15 @@ async function saveRulesToCloud() {
 }
 document.querySelector('.nav-item[data-p="rules"]')?.addEventListener('click', renderRulesPage);
 
-function doLogin() {
+async function doLogin() {
   const u = document.getElementById('login-user').value.trim();
   const p = document.getElementById('login-pass').value;
   const err = document.getElementById('login-err');
   if (!usersLoaded) { err.textContent = 'Still loading user data — try again in a moment.'; return; }
   const match = USERS[u];
   if(!match) { err.textContent = 'Unknown username.'; return; }
-  if(p !== match.pass) { err.textContent = 'Incorrect password.'; document.getElementById('login-pass').value=''; return; }
+  const enteredHash = await hashPassword(p, match.salt);
+  if(enteredHash !== match.passHash) { err.textContent = 'Incorrect password.'; document.getElementById('login-pass').value=''; return; }
   currentUser = {name:u, role:match.role, label:match.label};
   document.getElementById('login-overlay').style.display = 'none';
   document.getElementById('user-badge').style.display = 'flex';
@@ -4568,7 +4588,7 @@ function userRowInnerHtml(username, u) {
       ${superAdminOption}
     </select></td>
     <td class="un-role-desc" style="font-size:11px;color:var(--t3)">${roleDescription(u.role)}</td>
-    <td><input class="en un-pass" type="text" value="${esc(u.pass)}" placeholder="password"></td>
+    <td><input class="en un-pass" type="text" value="" placeholder="${u.passHash ? 'Leave blank to keep current' : 'Required for new user'}"></td>
     <td>${canDelete
       ? `<span style="color:var(--red);cursor:pointer;font-size:16px" onclick="deleteUserRow(this)" title="Remove user">×</span>`
       : `<span style="color:var(--t3);font-size:11px" title="${isSelf ? 'Can\'t delete your own account while signed in' : 'Only a Super Admin can remove a Super Admin'}">—</span>`}</td>`;
@@ -4577,13 +4597,14 @@ function userRowInnerHtml(username, u) {
 function renderUserManagementTable() {
   const tb = document.getElementById('users-table-body');
   if (!tb) return;
-  tb.innerHTML = Object.keys(USERS).map(username => `<tr>${userRowInnerHtml(username, USERS[username])}</tr>`).join('');
+  tb.innerHTML = Object.keys(USERS).map(username => `<tr data-original-username="${username.replace(/"/g,'&quot;')}">${userRowInnerHtml(username, USERS[username])}</tr>`).join('');
 }
 
 function addUserRow() {
   const tb = document.getElementById('users-table-body');
   if (!tb) return;
   const tr = document.createElement('tr');
+  tr.dataset.originalUsername = '';
   tr.innerHTML = userRowInnerHtml('', { pass: '', role: 'viewer', label: '' });
   tb.appendChild(tr);
   tr.querySelector('.un-username')?.focus();
@@ -4618,21 +4639,29 @@ async function saveUsersToCloud() {
   let duplicateUsername = false;
   let unauthorizedSuperadminGrant = false;
 
-  tb.querySelectorAll('tr').forEach(tr => {
+  for (const tr of tb.querySelectorAll('tr')) {
     const username = tr.querySelector('.un-username')?.value.trim();
     const label = tr.querySelector('.un-label')?.value.trim();
     const role = tr.querySelector('.un-role')?.value;
-    const pass = tr.querySelector('.un-pass')?.value;
-    if (!username || !pass) { missingField = true; return; }
-    if (newUsers[username]) { duplicateUsername = true; return; }
+    const newPass = tr.querySelector('.un-pass')?.value;
+    const originalUsername = tr.dataset.originalUsername || '';
+    const existing = originalUsername ? USERS[originalUsername] : null;
+    if (!username) { missingField = true; continue; }
+    if (!newPass && !existing?.passHash) { missingField = true; continue; }
+    if (newUsers[username]) { duplicateUsername = true; continue; }
     // Backstop in case the UI-level restriction was bypassed (e.g. via dev tools) —
     // only a Super Admin may grant the Super Admin role, to anyone, ever.
-    if (role === 'superadmin' && !iAmSuperadmin && !(USERS[username] && USERS[username].role === 'superadmin')) {
-      unauthorizedSuperadminGrant = true; return;
+    if (role === 'superadmin' && !iAmSuperadmin && !(existing && existing.role === 'superadmin')) {
+      unauthorizedSuperadminGrant = true; continue;
     }
-    newUsers[username] = { pass, role, label: label || username };
-    if (currentUser && username === currentUser.name) selfStillPresent = true;
-  });
+    let passHash, salt;
+    if (newPass) { salt = generateSalt(); passHash = await hashPassword(newPass, salt); }
+    else { salt = existing.salt; passHash = existing.passHash; }
+    const entry = { passHash, salt, role, label: label || username };
+    if (existing?.avatar) entry.avatar = existing.avatar;
+    newUsers[username] = entry;
+    if (currentUser && (username === currentUser.name || originalUsername === currentUser.name)) selfStillPresent = true;
+  }
 
   if (missingField) { usersSetStatus('Every user needs at least a username and password.', true); return; }
   if (duplicateUsername) { usersSetStatus('Two users have the same username — usernames must be unique.', true); return; }
@@ -6186,7 +6215,7 @@ async function saveMyProfile() {
   const existing = USERS[currentUser.name] || {};
   const updated = { ...existing };
   if (label) updated.label = label;
-  if (newPass) updated.pass = newPass;
+  if (newPass) { updated.salt = generateSalt(); updated.passHash = await hashPassword(newPass, updated.salt); }
   if (pendingAvatarDataUrl === null) delete updated.avatar;
   else if (pendingAvatarDataUrl !== undefined) updated.avatar = pendingAvatarDataUrl;
 
